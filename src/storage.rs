@@ -113,3 +113,21 @@ impl Storage {
         Ok((obj_type, content))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_storage_write_read() {
+        let dir = tempdir().unwrap();
+        let config = AppConfig::default();
+        let storage = Storage::new(dir.path().to_path_buf(), config);
+        let data = b"kitsu storage test content";
+        let hash = storage.hash_and_write(ObjectType::Chunk, data).unwrap();
+        let (obj_type, read_data) = storage.read_object(&hash).unwrap();
+        assert!(matches!(obj_type, ObjectType::Chunk));
+        assert_eq!(read_data, data);
+    }
+}

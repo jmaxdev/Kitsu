@@ -141,3 +141,32 @@ impl Checkpoint {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_chunk_hashing() {
+        let chunk = Chunk::new(b"hello kitsu".to_vec());
+        let hash = chunk.hash();
+        assert_eq!(hash.len(), 64);
+        assert_ne!(hash, "");
+    }
+
+    #[test]
+    fn test_map_serialization() {
+        let entries = vec![
+            MapEntry {
+                mode: "100644".to_string(),
+                name: "file.txt".to_string(),
+                hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".to_string(),
+            }
+        ];
+        let map = Map::new(entries);
+        let data = map.serialize();
+        let decoded = Map::deserialize(&data).unwrap();
+        assert_eq!(decoded.entries.len(), 1);
+        assert_eq!(decoded.entries[0].name, "file.txt");
+    }
+}

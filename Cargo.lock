@@ -834,6 +834,7 @@ dependencies = [
  "similar",
  "ssh2",
  "tar",
+ "tempfile",
  "toml",
  "walkdir",
 ]
