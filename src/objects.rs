@@ -1,5 +1,5 @@
+use crate::storage::{ObjectType, Storage};
 use anyhow::Result;
-use crate::storage::{Storage, ObjectType};
 
 pub struct Chunk {
     pub content: Vec<u8>,
@@ -15,7 +15,7 @@ impl Chunk {
     }
 
     pub fn hash(&self) -> String {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
         hasher.update(b"chunk ");
         hasher.update(self.content.len().to_string().as_bytes());
@@ -61,13 +61,17 @@ impl Map {
         let mut entries = Vec::new();
         let mut pos = 0;
         while pos < data.len() {
-            let null_pos = data[pos..].iter().position(|&b| b == 0).ok_or_else(|| anyhow::anyhow!("Invalid map format"))? + pos;
+            let null_pos = data[pos..]
+                .iter()
+                .position(|&b| b == 0)
+                .ok_or_else(|| anyhow::anyhow!("Invalid map format"))?
+                + pos;
             let header = String::from_utf8(data[pos..null_pos].to_vec())?;
             let parts: Vec<&str> = header.split_whitespace().collect();
             let mode = parts[0].to_string();
             let name = parts[1].to_string();
             pos = null_pos + 1;
-            let hash_bytes = &data[pos..pos+32];
+            let hash_bytes = &data[pos..pos + 32];
             let hash = hex::encode(hash_bytes);
             pos += 32;
             entries.push(MapEntry { mode, name, hash });
@@ -156,13 +160,11 @@ mod tests {
 
     #[test]
     fn test_map_serialization() {
-        let entries = vec![
-            MapEntry {
-                mode: "100644".to_string(),
-                name: "file.txt".to_string(),
-                hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".to_string(),
-            }
-        ];
+        let entries = vec![MapEntry {
+            mode: "100644".to_string(),
+            name: "file.txt".to_string(),
+            hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".to_string(),
+        }];
         let map = Map::new(entries);
         let data = map.serialize();
         let decoded = Map::deserialize(&data).unwrap();

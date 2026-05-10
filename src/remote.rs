@@ -39,13 +39,13 @@ impl Remote {
             return Ok(sess);
         }
         if let Some(p) = password
-            && sess.userauth_password(user, p).is_ok() {
+            && sess.userauth_password(user, p).is_ok()
+        {
             return Ok(sess);
         }
         let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("No home dir"))?;
         let id_rsa = home.join(".ssh/id_rsa");
-        if id_rsa.exists()
-            && sess.userauth_pubkey_file(user, None, &id_rsa, None).is_ok() {
+        if id_rsa.exists() && sess.userauth_pubkey_file(user, None, &id_rsa, None).is_ok() {
             return Ok(sess);
         }
         Err(anyhow::anyhow!("Authentication failed for user {}", user))
@@ -79,10 +79,18 @@ impl Remote {
         Ok(())
     }
 
-    pub fn fetch_object(&self, sess: &Session, hash: &str, remote_repo_path: &str) -> Result<Vec<u8>> {
+    pub fn fetch_object(
+        &self,
+        sess: &Session,
+        hash: &str,
+        remote_repo_path: &str,
+    ) -> Result<Vec<u8>> {
         let sftp = sess.sftp()?;
         let (dir, file) = hash.split_at(2);
-        let remote_file = Path::new(remote_repo_path).join("objects").join(dir).join(file);
+        let remote_file = Path::new(remote_repo_path)
+            .join("objects")
+            .join(dir)
+            .join(file);
         let mut f = sftp.open(&remote_file)?;
         let mut data = Vec::new();
         f.read_to_end(&mut data)?;
