@@ -221,8 +221,8 @@ fn resolve_target(
     if seal_path.exists() {
         return Ok(fs::read_to_string(seal_path)?.trim().to_string());
     }
-    if target.starts_with('~') {
-        let n: usize = target[1..].parse()?;
+    if let Some(stripped) = target.strip_prefix('~') {
+        let n: usize = stripped.parse()?;
         let mut current =
             get_head_hash(current_dir, config)?.ok_or_else(|| anyhow::anyhow!("No history"))?;
         for _ in 0..n {
@@ -233,8 +233,8 @@ fn resolve_target(
         }
         return Ok(current);
     }
-    if target.starts_with('#') {
-        let n: usize = target[1..].parse()?;
+    if let Some(stripped) = target.strip_prefix('#') {
+        let n: usize = stripped.parse()?;
         let head =
             get_head_hash(current_dir, config)?.ok_or_else(|| anyhow::anyhow!("No history"))?;
         let mut history = Vec::new();
@@ -245,10 +245,10 @@ fn resolve_target(
             cur = objects::Checkpoint::deserialize(&content)?.parent_hash;
         }
         history.reverse();
-        return Ok(history
+        return history
             .get(n)
             .cloned()
-            .ok_or_else(|| anyhow::anyhow!("Index out of bounds"))?);
+            .ok_or_else(|| anyhow::anyhow!("Index out of bounds"));
     }
     Ok(target.to_string())
 }
@@ -362,7 +362,7 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::Ignite => {
-            println!("{}", "--- vcontrol Ignite Assistant ---".cyan().bold());
+            println!("{}", "--- Kitsu Ignite Assistant ---".cyan().bold());
             fs::create_dir_all(repo_dir.join(&config.objects_dir))?;
             fs::create_dir_all(repo_dir.join(&config.streams_dir))?;
             fs::create_dir_all(repo_dir.join("seals"))?;
@@ -414,7 +414,7 @@ fn main() -> Result<()> {
         }
         Commands::Copy { url, directory } => {
             let dir_name = directory.unwrap_or_else(|| {
-                let name = url.split('/').last().unwrap_or("repo");
+                let name = url.split('/').next_back().unwrap_or("repo");
                 PathBuf::from(name.trim_end_matches(".git"))
             });
             if dir_name.exists() {

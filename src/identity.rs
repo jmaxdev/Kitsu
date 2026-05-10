@@ -1,8 +1,8 @@
-use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
-use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+use ed25519_dalek::{SigningKey, VerifyingKey, Signature, Signer};
+use rand_core::OsRng;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Identity {
@@ -23,10 +23,7 @@ impl Identity {
     }
 
     pub fn sign(&self, data: &[u8]) -> anyhow::Result<String> {
-        let priv_bytes = self
-            .private_key
-            .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("No private key"))?;
+        let priv_bytes = self.private_key.as_ref().ok_or_else(|| anyhow::anyhow!("No private key"))?;
         let bytes: [u8; 32] = priv_bytes.as_slice().try_into()?;
         let signing_key = SigningKey::from_bytes(&bytes);
         let signature = signing_key.sign(data);
@@ -34,11 +31,7 @@ impl Identity {
     }
 
     #[allow(dead_code)]
-    pub fn verify(
-        public_key_bytes: &[u8],
-        data: &[u8],
-        signature_hex: &str,
-    ) -> anyhow::Result<bool> {
+    pub fn verify(public_key_bytes: &[u8], data: &[u8], signature_hex: &str) -> anyhow::Result<bool> {
         let sig_bytes = hex::decode(signature_hex)?;
         let sig_arr: [u8; 64] = sig_bytes.as_slice().try_into()?;
         let signature = Signature::from_bytes(&sig_arr);
@@ -57,22 +50,17 @@ pub struct IdentityStore {
 impl IdentityStore {
     pub fn load(current_dir: &Path) -> Self {
         let local_path = current_dir.join(".kitsu/identity.toml");
-        if local_path.exists() {
-            if let Ok(content) = fs::read_to_string(local_path) {
-                if let Ok(store) = toml::from_str(&content) {
-                    return store;
-                }
-            }
+        if local_path.exists()
+            && let Ok(content) = fs::read_to_string(local_path)
+            && let Ok(store) = toml::from_str(&content) {
+            return store;
         }
         let global_path = dirs::home_dir().map(|h| h.join(".kitsu_identity.toml"));
-        if let Some(gp) = global_path {
-            if gp.exists() {
-                if let Ok(content) = fs::read_to_string(gp) {
-                    if let Ok(store) = toml::from_str(&content) {
-                        return store;
-                    }
-                }
-            }
+        if let Some(gp) = global_path
+            && gp.exists()
+            && let Ok(content) = fs::read_to_string(gp)
+            && let Ok(store) = toml::from_str(&content) {
+            return store;
         }
         Self::default()
     }
@@ -80,9 +68,7 @@ impl IdentityStore {
     pub fn save(&self, current_dir: &Path, global: bool) -> anyhow::Result<()> {
         let content = toml::to_string(self)?;
         if global {
-            let path = dirs::home_dir()
-                .ok_or_else(|| anyhow::anyhow!("No home dir"))?
-                .join(".kitsu_identity.toml");
+            let path = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("No home dir"))?.join(".kitsu_identity.toml");
             fs::write(path, content)?;
         } else {
             let path = current_dir.join(".kitsu/identity.toml");
@@ -93,10 +79,7 @@ impl IdentityStore {
     }
 
     pub fn get_active(&self) -> &Identity {
-        self.identities
-            .iter()
-            .find(|i| i.id == self.active_id)
-            .unwrap_or(&self.identities[0])
+        self.identities.iter().find(|i| i.id == self.active_id).unwrap_or(&self.identities[0])
     }
 }
 
