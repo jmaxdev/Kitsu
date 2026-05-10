@@ -1,11 +1,16 @@
-use crate::storage::Storage;
 use crate::objects::{Map, MapEntry};
+use crate::storage::Storage;
 use anyhow::Result;
 use colored::*;
 use similar::{ChangeTag, TextDiff};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub fn diff_maps(storage: &Storage, old_map_hash: Option<&str>, new_map_hash: &str, path_prefix: &str) -> Result<()> {
+pub fn diff_maps(
+    storage: &Storage,
+    old_map_hash: Option<&str>,
+    new_map_hash: &str,
+    path_prefix: &str,
+) -> Result<()> {
     let old_entries = if let Some(hash) = old_map_hash {
         let (_, data) = storage.read_object(hash)?;
         Map::deserialize(&data)?.entries
@@ -14,13 +19,27 @@ pub fn diff_maps(storage: &Storage, old_map_hash: Option<&str>, new_map_hash: &s
     };
     let (_, data) = storage.read_object(new_map_hash)?;
     let new_entries = Map::deserialize(&data)?.entries;
-    let old_map: BTreeMap<String, MapEntry> = old_entries.into_iter().map(|e| (e.name.clone(), e)).collect();
-    let new_map: BTreeMap<String, MapEntry> = new_entries.into_iter().map(|e| (e.name.clone(), e)).collect();
-    let all_names: BTreeSet<String> = old_map.keys().cloned().chain(new_map.keys().cloned()).collect();
+    let old_map: BTreeMap<String, MapEntry> = old_entries
+        .into_iter()
+        .map(|e| (e.name.clone(), e))
+        .collect();
+    let new_map: BTreeMap<String, MapEntry> = new_entries
+        .into_iter()
+        .map(|e| (e.name.clone(), e))
+        .collect();
+    let all_names: BTreeSet<String> = old_map
+        .keys()
+        .cloned()
+        .chain(new_map.keys().cloned())
+        .collect();
     for name in all_names {
         let old = old_map.get(&name);
         let new = new_map.get(&name);
-        let full_path = if path_prefix.is_empty() { name.clone() } else { format!("{}/{}", path_prefix, name) };
+        let full_path = if path_prefix.is_empty() {
+            name.clone()
+        } else {
+            format!("{}/{}", path_prefix, name)
+        };
         match (old, new) {
             (Some(o), Some(n)) => {
                 if o.hash != n.hash {

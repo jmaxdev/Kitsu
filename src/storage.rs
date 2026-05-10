@@ -1,12 +1,12 @@
+use crate::config::AppConfig;
 use anyhow::Result;
+use flate2::Compression;
 use flate2::read::ZlibDecoder;
 use flate2::write::ZlibEncoder;
-use flate2::Compression;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::io::{Read, Write};
 use std::path::PathBuf;
-use crate::config::AppConfig;
 
 #[derive(Debug, Clone, Copy)]
 pub enum ObjectType {
@@ -80,7 +80,10 @@ impl Storage {
         let mut decoder = ZlibDecoder::new(&compressed_data[..]);
         let mut full_data = Vec::new();
         decoder.read_to_end(&mut full_data)?;
-        let null_pos = full_data.iter().position(|&b| b == 0).ok_or_else(|| anyhow::anyhow!("Invalid object format"))?;
+        let null_pos = full_data
+            .iter()
+            .position(|&b| b == 0)
+            .ok_or_else(|| anyhow::anyhow!("Invalid object format"))?;
         let header = String::from_utf8_lossy(&full_data[..null_pos]);
         let parts: Vec<&str> = header.split_whitespace().collect();
         let obj_type = ObjectType::from_str(parts[0])?;
@@ -99,7 +102,10 @@ impl Storage {
             }
             fs::write(path, compressed_data)?;
         }
-        let null_pos = full_data.iter().position(|&b| b == 0).ok_or_else(|| anyhow::anyhow!("Invalid object format"))?;
+        let null_pos = full_data
+            .iter()
+            .position(|&b| b == 0)
+            .ok_or_else(|| anyhow::anyhow!("Invalid object format"))?;
         let header = String::from_utf8_lossy(&full_data[..null_pos]);
         let parts: Vec<&str> = header.split_whitespace().collect();
         let obj_type = ObjectType::from_str(parts[0])?;

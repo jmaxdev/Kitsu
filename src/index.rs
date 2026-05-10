@@ -1,10 +1,10 @@
+use crate::config::AppConfig;
+use crate::objects::{Map, MapEntry};
+use crate::storage::Storage;
 use anyhow::Result;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use crate::storage::Storage;
-use crate::objects::{Map, MapEntry};
-use crate::config::AppConfig;
 
 #[derive(Debug, Clone)]
 pub struct StageEntry {
@@ -30,35 +30,45 @@ impl Stage {
                 let entry_count = u32::from_be_bytes(content[0..4].try_into()?);
                 let mut pos = 4;
                 for _ in 0..entry_count {
-                    let path_len = u32::from_be_bytes(content[pos..pos+4].try_into()?) as usize;
+                    let path_len = u32::from_be_bytes(content[pos..pos + 4].try_into()?) as usize;
                     pos += 4;
-                    let path_str = String::from_utf8(content[pos..pos+path_len].to_vec())?;
+                    let path_str = String::from_utf8(content[pos..pos + path_len].to_vec())?;
                     pos += path_len;
-                    let hash = String::from_utf8(content[pos..pos+64].to_vec())?;
+                    let hash = String::from_utf8(content[pos..pos + 64].to_vec())?;
                     pos += 64;
-                    let mode = u32::from_be_bytes(content[pos..pos+4].try_into()?);
+                    let mode = u32::from_be_bytes(content[pos..pos + 4].try_into()?);
                     pos += 4;
-                    let size = u64::from_be_bytes(content[pos..pos+8].try_into()?);
+                    let size = u64::from_be_bytes(content[pos..pos + 8].try_into()?);
                     pos += 8;
-                    entries.insert(path_str.clone(), StageEntry {
-                        path: path_str,
-                        hash,
-                        mode,
-                        size,
-                    });
+                    entries.insert(
+                        path_str.clone(),
+                        StageEntry {
+                            path: path_str,
+                            hash,
+                            mode,
+                            size,
+                        },
+                    );
                 }
             }
         }
-        Ok(Self { entries, path, config })
+        Ok(Self {
+            entries,
+            path,
+            config,
+        })
     }
 
     pub fn add(&mut self, path: String, hash: String, mode: u32, size: u64) {
-        self.entries.insert(path.clone(), StageEntry {
-            path,
-            hash,
-            mode,
-            size,
-        });
+        self.entries.insert(
+            path.clone(),
+            StageEntry {
+                path,
+                hash,
+                mode,
+                size,
+            },
+        );
     }
 
     pub fn save(&self) -> Result<()> {
@@ -82,7 +92,7 @@ impl Stage {
         for entry in self.entries.values() {
             if let Some(first_slash) = entry.path.find(|c| c == '/' || c == '\\') {
                 let dir = &entry.path[..first_slash];
-                let sub_path = &entry.path[first_slash+1..];
+                let sub_path = &entry.path[first_slash + 1..];
                 let mut sub_entry = entry.clone();
                 sub_entry.path = sub_path.to_string();
                 tree_map.entry(dir.to_string()).or_default().push(sub_entry);
@@ -93,7 +103,10 @@ impl Stage {
         let mut final_entries = Vec::new();
         for (dir, sub_entries) in tree_map {
             let sub_stage = Stage {
-                entries: sub_entries.into_iter().map(|e| (e.path.clone(), e)).collect(),
+                entries: sub_entries
+                    .into_iter()
+                    .map(|e| (e.path.clone(), e))
+                    .collect(),
                 path: PathBuf::new(),
                 config: self.config.clone(),
             };

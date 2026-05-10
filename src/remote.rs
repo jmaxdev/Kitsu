@@ -26,7 +26,11 @@ impl Remote {
         };
         let host_port_parts: Vec<&str> = host_port.split(':').collect();
         let host = host_port_parts[0];
-        let port = if host_port_parts.len() > 1 { host_port_parts[1] } else { "22" };
+        let port = if host_port_parts.len() > 1 {
+            host_port_parts[1]
+        } else {
+            "22"
+        };
         let tcp = TcpStream::connect(format!("{}:{}", host, port))?;
         let mut sess = Session::new()?;
         sess.set_tcp_stream(tcp);
@@ -60,7 +64,13 @@ impl Remote {
         Ok(())
     }
 
-    pub fn push_object(&self, sess: &Session, hash: &str, data: &[u8], remote_repo_path: &str) -> Result<()> {
+    pub fn push_object(
+        &self,
+        sess: &Session,
+        hash: &str,
+        data: &[u8],
+        remote_repo_path: &str,
+    ) -> Result<()> {
         let sftp = sess.sftp()?;
         let (dir, file) = hash.split_at(2);
         let remote_dir = Path::new(remote_repo_path).join("objects").join(dir);
@@ -71,17 +81,31 @@ impl Remote {
         Ok(())
     }
 
-    pub fn fetch_object(&self, sess: &Session, hash: &str, remote_repo_path: &str) -> Result<Vec<u8>> {
+    pub fn fetch_object(
+        &self,
+        sess: &Session,
+        hash: &str,
+        remote_repo_path: &str,
+    ) -> Result<Vec<u8>> {
         let sftp = sess.sftp()?;
         let (dir, file) = hash.split_at(2);
-        let remote_file = Path::new(remote_repo_path).join("objects").join(dir).join(file);
+        let remote_file = Path::new(remote_repo_path)
+            .join("objects")
+            .join(dir)
+            .join(file);
         let mut f = sftp.open(&remote_file)?;
         let mut data = Vec::new();
         f.read_to_end(&mut data)?;
         Ok(data)
     }
 
-    pub fn push_seal(&self, sess: &Session, name: &str, hash: &str, remote_repo_path: &str) -> Result<()> {
+    pub fn push_seal(
+        &self,
+        sess: &Session,
+        name: &str,
+        hash: &str,
+        remote_repo_path: &str,
+    ) -> Result<()> {
         let sftp = sess.sftp()?;
         let remote_file = Path::new(remote_repo_path).join("seals").join(name);
         let mut f = sftp.create(&remote_file)?;
