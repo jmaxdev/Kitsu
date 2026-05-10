@@ -10,9 +10,9 @@ use crate::config::AppConfig;
 
 #[derive(Debug, Clone, Copy)]
 pub enum ObjectType {
-    Chunk,      // formerly Blob
-    Map,        // formerly Tree
-    Checkpoint, // formerly Commit
+    Chunk,
+    Map,
+    Checkpoint,
 }
 
 impl ObjectType {
@@ -58,18 +58,12 @@ impl Storage {
         let mut full_data = Vec::new();
         full_data.extend_from_slice(header.as_bytes());
         full_data.extend_from_slice(data);
-
-        // Hashing with SHA-256
         let mut hasher = Sha256::new();
         hasher.update(&full_data);
         let hash = hex::encode(hasher.finalize());
-
-        // Compression
         let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
         encoder.write_all(&full_data)?;
         let compressed_data = encoder.finish()?;
-
-        // Storage
         let path = self.get_object_path(&hash);
         if !path.exists() {
             if let Some(parent) = path.parent() {
@@ -77,34 +71,27 @@ impl Storage {
             }
             fs::write(path, compressed_data)?;
         }
-
         Ok(hash)
     }
 
     pub fn read_object(&self, hash: &str) -> Result<(ObjectType, Vec<u8>)> {
         let path = self.get_object_path(hash);
         let compressed_data = fs::read(path)?;
-
         let mut decoder = ZlibDecoder::new(&compressed_data[..]);
         let mut full_data = Vec::new();
         decoder.read_to_end(&mut full_data)?;
-
-        // Split header and content
         let null_pos = full_data.iter().position(|&b| b == 0).ok_or_else(|| anyhow::anyhow!("Invalid object format"))?;
         let header = String::from_utf8_lossy(&full_data[..null_pos]);
         let parts: Vec<&str> = header.split_whitespace().collect();
         let obj_type = ObjectType::from_str(parts[0])?;
         let content = full_data[null_pos + 1..].to_vec();
-
         Ok((obj_type, content))
     }
 
     pub fn write_raw(&self, hash: &str, full_data: &[u8]) -> Result<(ObjectType, Vec<u8>)> {
-        // Compression
         let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
         encoder.write_all(full_data)?;
         let compressed_data = encoder.finish()?;
-
         let path = self.get_object_path(hash);
         if !path.exists() {
             if let Some(parent) = path.parent() {
@@ -112,14 +99,11 @@ impl Storage {
             }
             fs::write(path, compressed_data)?;
         }
-
-        // Return components for immediate use
         let null_pos = full_data.iter().position(|&b| b == 0).ok_or_else(|| anyhow::anyhow!("Invalid object format"))?;
         let header = String::from_utf8_lossy(&full_data[..null_pos]);
         let parts: Vec<&str> = header.split_whitespace().collect();
         let obj_type = ObjectType::from_str(parts[0])?;
         let content = full_data[null_pos + 1..].to_vec();
-
         Ok((obj_type, content))
     }
 }

@@ -24,17 +24,8 @@ impl Stage {
     pub fn load(root_dir: &Path, config: AppConfig) -> Result<Self> {
         let path = root_dir.join(&config.dir_name).join(&config.stage_file);
         let mut entries = BTreeMap::new();
-
         if path.exists() {
             let content = fs::read(&path)?;
-            // Binary format:
-            // [entry_count (4 bytes)]
-            // Each entry:
-            // [path_len (4 bytes)][path (path_len bytes)]
-            // [hash (64 bytes hex for SHA-256)]
-            // [mode (4 bytes)]
-            // [size (8 bytes)]
-            
             if content.len() >= 4 {
                 let entry_count = u32::from_be_bytes(content[0..4].try_into()?);
                 let mut pos = 4;
@@ -49,7 +40,6 @@ impl Stage {
                     pos += 4;
                     let size = u64::from_be_bytes(content[pos..pos+8].try_into()?);
                     pos += 8;
-
                     entries.insert(path_str.clone(), StageEntry {
                         path: path_str,
                         hash,
@@ -59,7 +49,6 @@ impl Stage {
                 }
             }
         }
-
         Ok(Self { entries, path, config })
     }
 
@@ -75,7 +64,6 @@ impl Stage {
     pub fn save(&self) -> Result<()> {
         let mut data = Vec::new();
         data.extend_from_slice(&(self.entries.len() as u32).to_be_bytes());
-        
         for entry in self.entries.values() {
             let path_bytes = entry.path.as_bytes();
             data.extend_from_slice(&(path_bytes.len() as u32).to_be_bytes());
@@ -84,7 +72,6 @@ impl Stage {
             data.extend_from_slice(&entry.mode.to_be_bytes());
             data.extend_from_slice(&entry.size.to_be_bytes());
         }
-
         fs::write(&self.path, data)?;
         Ok(())
     }
@@ -92,7 +79,6 @@ impl Stage {
     pub fn write_map(&self, storage: &Storage) -> Result<String> {
         let mut tree_map: BTreeMap<String, Vec<StageEntry>> = BTreeMap::new();
         let mut root_entries = Vec::new();
-
         for entry in self.entries.values() {
             if let Some(first_slash) = entry.path.find(|c| c == '/' || c == '\\') {
                 let dir = &entry.path[..first_slash];
@@ -104,9 +90,7 @@ impl Stage {
                 root_entries.push(entry.clone());
             }
         }
-
         let mut final_entries = Vec::new();
-
         for (dir, sub_entries) in tree_map {
             let sub_stage = Stage {
                 entries: sub_entries.into_iter().map(|e| (e.path.clone(), e)).collect(),
@@ -120,7 +104,6 @@ impl Stage {
                 hash: sub_map_hash,
             });
         }
-
         for entry in root_entries {
             final_entries.push(MapEntry {
                 mode: format!("{:o}", entry.mode),
@@ -128,7 +111,6 @@ impl Stage {
                 hash: entry.hash,
             });
         }
-
         let map = Map::new(final_entries);
         map.save(storage)
     }

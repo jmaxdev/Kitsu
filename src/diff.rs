@@ -12,20 +12,15 @@ pub fn diff_maps(storage: &Storage, old_map_hash: Option<&str>, new_map_hash: &s
     } else {
         Vec::new()
     };
-
     let (_, data) = storage.read_object(new_map_hash)?;
     let new_entries = Map::deserialize(&data)?.entries;
-
     let old_map: BTreeMap<String, MapEntry> = old_entries.into_iter().map(|e| (e.name.clone(), e)).collect();
     let new_map: BTreeMap<String, MapEntry> = new_entries.into_iter().map(|e| (e.name.clone(), e)).collect();
-
     let all_names: BTreeSet<String> = old_map.keys().cloned().chain(new_map.keys().cloned()).collect();
-
     for name in all_names {
         let old = old_map.get(&name);
         let new = new_map.get(&name);
         let full_path = if path_prefix.is_empty() { name.clone() } else { format!("{}/{}", path_prefix, name) };
-
         match (old, new) {
             (Some(o), Some(n)) => {
                 if o.hash != n.hash {
@@ -50,16 +45,13 @@ pub fn diff_maps(storage: &Storage, old_map_hash: Option<&str>, new_map_hash: &s
             (None, None) => unreachable!(),
         }
     }
-
     Ok(())
 }
 
 fn print_diff(old_data: &[u8], new_data: &[u8]) {
     let old_str = String::from_utf8_lossy(old_data);
     let new_str = String::from_utf8_lossy(new_data);
-
     let diff = TextDiff::from_lines(&old_str, &new_str);
-
     for change in diff.iter_all_changes() {
         let (sign, color) = match change.tag() {
             ChangeTag::Delete => ("-", Color::Red),
