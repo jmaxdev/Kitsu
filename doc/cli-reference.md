@@ -10,7 +10,7 @@ Kitsu inherits standard options from `clap`:
 
 | Flag | Description |
 |------|-------------|
-| `--version` | Print the Kitsu version (`0.0.1-alpha`) |
+| `--version` | Print the current Kitsu version |
 | `--help` | Print help information |
 | `-h` | Print short help |
 
