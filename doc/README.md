@@ -26,37 +26,6 @@ Kitsu is a from-scratch VCS that reimagines version control with its own termino
 
 ---
 
-## Installation
-
-You can download the pre-compiled binaries for your operating system from the **[Releases page](https://github.com/jmaxdev/Kitsu/releases)**.
-
-### Linux (Ubuntu/Debian)
-```bash
-wget https://github.com/jmaxdev/Kitsu/releases/latest/download/kitsu-x86_64-unknown-linux-gnu.tar.gz
-tar -xzf kitsu-x86_64-unknown-linux-gnu.tar.gz
-sudo mv kitsu /usr/local/bin/
-```
-
-### macOS
-```bash
-# For Apple Silicon (M1/M2/M3)
-wget https://github.com/jmaxdev/Kitsu/releases/latest/download/kitsu-aarch64-apple-darwin.tar.gz
-tar -xzf kitsu-aarch64-apple-darwin.tar.gz
-sudo mv kitsu-m1 /usr/local/bin/kitsu
-
-# For Intel Macs
-wget https://github.com/jmaxdev/Kitsu/releases/latest/download/kitsu-x86_64-apple-darwin.tar.gz
-tar -xzf kitsu-x86_64-apple-darwin.tar.gz
-sudo mv kitsu-intel /usr/local/bin/kitsu
-```
-
-### Windows
-1. Download `kitsu-x86_64-pc-windows-msvc.zip` from the Releases page.
-2. Extract the `.zip` file.
-3. Move `kitsu.exe` to a folder and add that folder to your system's `PATH` environment variable.
-
----
-
 ## Quickstart
 
 ### 1. Build from source
