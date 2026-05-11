@@ -10,6 +10,8 @@ mod storage;
 use crate::config::AppConfig;
 use crate::exclude::Exclude;
 use crate::identity::IdentityStore;
+use crate::objects::Checkpoint;
+use crate::storage::ObjectType;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::*;
@@ -631,6 +633,13 @@ fn main() -> Result<()> {
             let file = fs::File::create(&output)?;
             let enc = flate2::write::GzEncoder::new(file, flate2::Compression::default());
             let mut tar = tar::Builder::new(enc);
+
+            let manifest = format!("target_name: {}\ntarget_hash: {}\n", target, hash);
+            let mut manifest_header = tar::Header::new_gnu();
+            manifest_header.set_size(manifest.len() as u64);
+            manifest_header.set_mode(0o644);
+            tar.append_data(&mut manifest_header, "MANIFEST", manifest.as_bytes())?;
+
             for h in reachable {
                 let (obj_type, data) = storage.read_object(&h)?;
                 let mut header = tar::Header::new_gnu();
@@ -646,15 +655,59 @@ fn main() -> Result<()> {
             let file = fs::File::open(input)?;
             let dec = flate2::read::GzDecoder::new(file);
             let mut tar = tar::Archive::new(dec);
+
+            let mut target_name = None;
+            let mut target_hash = None;
+
             for entry in tar.entries()? {
                 let mut entry = entry?;
                 let path = entry.path()?.to_string_lossy().to_string();
-                let hash = path.split(':').next().unwrap();
                 let mut data = Vec::new();
                 entry.read_to_end(&mut data)?;
+
+                if path == "MANIFEST" {
+                    let manifest_str = String::from_utf8_lossy(&data);
+                    for line in manifest_str.lines() {
+                        if let Some(name) = line.strip_prefix("target_name: ") {
+                            target_name = Some(name.to_string());
+                        }
+                        if let Some(hash) = line.strip_prefix("target_hash: ") {
+                            target_hash = Some(hash.to_string());
+                        }
+                    }
+                    continue;
+                }
+
+                let hash = path.split(':').next().unwrap();
                 storage.write_raw(hash, &data)?;
             }
             println!("Import complete.");
+
+            if let Some(hash) = target_hash {
+                let name = target_name.unwrap_or_else(|| "unknown".to_string());
+                println!("Image target: {} ({})", name.cyan(), hash.bright_black());
+
+                let head_hash = get_head_hash(&current_dir, &config).unwrap_or(None);
+                if head_hash.is_none() {
+                    println!("{}", "Repository is empty. Auto-applying imported image...".yellow());
+                    if let Ok((ObjectType::Checkpoint, cp_data)) = storage.read_object(&hash) {
+                        if let Ok(cp) = Checkpoint::deserialize(&cp_data) {
+                            let exclude = Exclude::load(&current_dir);
+                            if apply_map_to_disk(&storage, &cp.map_hash, &current_dir, &exclude).is_ok() {
+                                let repo_dir = current_dir.join(&config.dir_name);
+                                fs::write(repo_dir.join(&config.current_file), format!("{}\n", hash)).ok();
+                                println!("Switched to {}", hash.green());
+                            } else {
+                                println!("Failed to apply working tree.");
+                            }
+                        } else {
+                            println!("Failed to parse imported checkpoint.");
+                        }
+                    }
+                } else {
+                    println!("To apply it to your working tree, run: {} {}", "kitsu switch".bold(), hash);
+                }
+            }
         }
         Commands::Push { remote, target } => {
             let r_name =
