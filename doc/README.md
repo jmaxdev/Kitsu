@@ -12,6 +12,7 @@ Kitsu is a from-scratch VCS that reimagines version control with its own termino
 
 | Document | Description |
 |----------|-------------|
+| [Installation Guide](installation.md) | How to install Kitsu globally across Windows, macOS, and Linux |
 | [Architecture](architecture.md) | High-level system architecture and data flow diagrams |
 | [CLI Reference](cli-reference.md) | Complete reference for all commands, flags, and subcommands |
 | [Object Model](object-model.md) | The Chunk → Map → Checkpoint data model |

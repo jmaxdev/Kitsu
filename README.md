@@ -53,6 +53,7 @@ Full documentation is available in the [`doc/`](doc/README.md) directory:
 
 | Document | Description |
 |----------|-------------|
+| [Installation](doc/installation.md) | How to install Kitsu globally in your OS |
 | [Architecture](doc/architecture.md) | System architecture and data flow |
 | [CLI Reference](doc/cli-reference.md) | Complete command reference |
 | [Object Model](doc/object-model.md) | Chunk, Map, Checkpoint internals |
