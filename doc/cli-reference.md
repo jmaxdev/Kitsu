@@ -302,12 +302,17 @@ $ kitsu seal -l
 
 Export a checkpoint and all its reachable objects to a compressed archive.
 
-**Git equivalent:** `git bundle create`
+**Git equivalent:** `git bundle create` / `docker save`
 
 | Argument | Required | Description |
 |----------|----------|-------------|
 | `target` | Yes | Checkpoint reference to export |
 | `output` | Yes | Output file path (`.tar.gz`) |
+
+**Behavior:**
+- Collects all objects reachable from the target checkpoint
+- Injects a `MANIFEST` file into the archive containing the `target_name` and `target_hash`
+- Compresses everything into a `.tar.gz` archive
 
 **Example:**
 ```bash
@@ -321,14 +326,25 @@ Exported main to "backup.tar.gz"
 
 Import objects from a previously exported archive.
 
+**Git equivalent:** `git bundle unbundle` / `docker load`
+
 | Argument | Required | Description |
 |----------|----------|-------------|
 | `input` | Yes | Path to `.tar.gz` archive |
+
+**Behavior:**
+- Reads the archive and loads all objects into the local content-addressable store
+- Parses the `MANIFEST` file to determine the exported target
+- **Auto-Switch:** If the repository is completely empty (e.g., just `kitsu ignite`d), it automatically unpacks the working tree and applies the imported checkpoint
+- **Safe Mode:** If the repository already has commits, it safely loads the objects without overwriting your files, and prints a command to manually apply the imported image
 
 **Example:**
 ```bash
 $ kitsu import backup.tar.gz
 Import complete.
+Image target: main (a1b2c3d4...)
+Repository is empty. Auto-applying imported image...
+Switched to a1b2c3d4...
 ```
 
 ---
