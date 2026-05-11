@@ -114,6 +114,6 @@ Kitsu is in **alpha** (`0.0.1-alpha`). The following features are functional:
 - ✅ Git bridge for GitHub/GitLab push
 - ✅ Multi-persona identity management
 - ✅ Repository info, stats, verification
-- ⚠️ `state` command (WIP)
+- ✅ Working state comparison (`state`)
 - ⚠️ Git pull support (WIP)
 - ⚠️ Merge/conflict resolution (not yet implemented)

@@ -5,6 +5,7 @@ mod identity;
 mod index;
 mod objects;
 mod remote;
+mod state;
 mod storage;
 
 use crate::config::AppConfig;
@@ -1170,7 +1171,7 @@ fn main() -> Result<()> {
             println!("Burned.");
         }
         Commands::State => {
-            println!("WIP: Working state comparison.");
+            state::run_state(&current_dir, &config, &storage, &exclude)?;
         }
         Commands::Peek { hash } => {
             let (_, d) = storage.read_object(&hash)?;
