@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.0.1--alpha-orange" alt="Version">
+  <a href="https://github.com/jmaxdev/Kitsu/releases"><img src="https://img.shields.io/github/v/release/jmaxdev/Kitsu?include_prereleases&color=orange" alt="GitHub release"></a>
   <img src="https://img.shields.io/badge/rust-edition%202024-blue" alt="Rust Edition">
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-UPL%201.0-green" alt="License"></a>
 </p>
@@ -53,6 +53,7 @@ Full documentation is available in the [`doc/`](doc/README.md) directory:
 
 | Document | Description |
 |----------|-------------|
+| [Installation](doc/installation.md) | How to install Kitsu globally in your OS |
 | [Architecture](doc/architecture.md) | System architecture and data flow |
 | [CLI Reference](doc/cli-reference.md) | Complete command reference |
 | [Object Model](doc/object-model.md) | Chunk, Map, Checkpoint internals |
@@ -78,7 +79,7 @@ Requires **Rust stable** toolchain (edition 2024).
 
 ## 📋 Status
 
-Kitsu is in **alpha** (`0.0.1-alpha`). Core VCS operations are functional. Merge/conflict resolution and some advanced features are in development.
+Kitsu is currently in **alpha**. Core VCS operations are functional. Merge/conflict resolution and some advanced features are in development.
 
 ## 📄 License
 

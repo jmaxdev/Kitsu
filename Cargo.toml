@@ -1,6 +1,6 @@
 [package]
 name = "kitsu"
-version = "0.0.1-alpha"
+version = "0.0.2-alpha"
 edition = "2024"
 description = "A modern version control system writed in Rust"
 

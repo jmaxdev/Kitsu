@@ -10,7 +10,7 @@ Kitsu inherits standard options from `clap`:
 
 | Flag | Description |
 |------|-------------|
-| `--version` | Print the Kitsu version (`0.0.1-alpha`) |
+| `--version` | Print the current Kitsu version |
 | `--help` | Print help information |
 | `-h` | Print short help |
 
@@ -429,11 +429,32 @@ Delete an object from local storage.
 
 ### `kitsu state`
 
-Show the working tree state compared to the last checkpoint.
+Show the working tree state compared to the staging area and the last checkpoint.
 
 **Git equivalent:** `git status`
 
-> **Status:** WIP — currently prints a placeholder message.
+**Behavior:**
+- **Changes to be frozen:** Files that are in the staging area and differ from HEAD (or are new/deleted).
+- **Changes not staged for freeze:** Files modified in the working directory that differ from the staging area.
+- **Untracked files:** Files in the working directory that are neither staged nor present in HEAD (respecting `.kitsu/exclude` and `.gitignore`).
+
+**Example:**
+```bash
+$ kitsu state
+Kitsu Working State
+
+Changes to be frozen:
+  (use "kitsu rollback" to unstage)
+	modified:   src/main.rs
+
+Changes not staged for freeze:
+  (use "kitsu track <file>..." to update what will be frozen)
+	modified:   README.md
+
+Untracked files:
+  (use "kitsu track <file>..." to include in what will be frozen)
+	doc/installation.md
+```
 
 ---
 

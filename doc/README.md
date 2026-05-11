@@ -4,7 +4,7 @@
 
 Kitsu is a from-scratch VCS that reimagines version control with its own terminology, object model, and workflow. It uses **content-addressable storage** backed by SHA-256 hashing and zlib compression, **Ed25519 cryptographic signatures** for checkpoint integrity, and supports both **self-hosted SSH/SFTP registries** and a **Git bridge** for GitHub/GitLab integration.
 
-**Current Version:** `0.0.1-alpha` · **License:** [UPL 1.0](../LICENSE.md)
+**Current Version:** [![GitHub release](https://img.shields.io/github/v/release/jmaxdev/Kitsu?include_prereleases&color=orange)](https://github.com/jmaxdev/Kitsu/releases) · **License:** [UPL 1.0](../LICENSE.md)
 
 ---
 
@@ -12,6 +12,7 @@ Kitsu is a from-scratch VCS that reimagines version control with its own termino
 
 | Document | Description |
 |----------|-------------|
+| [Installation Guide](installation.md) | How to install Kitsu globally across Windows, macOS, and Linux |
 | [Architecture](architecture.md) | High-level system architecture and data flow diagrams |
 | [CLI Reference](cli-reference.md) | Complete reference for all commands, flags, and subcommands |
 | [Object Model](object-model.md) | The Chunk → Map → Checkpoint data model |
@@ -98,7 +99,7 @@ kitsu push origin main
 
 ## Project Status
 
-Kitsu is in **alpha** (`0.0.1-alpha`). The following features are functional:
+Kitsu is currently in **alpha**. The following features are functional:
 
 - ✅ Repository initialization with interactive wizard
 - ✅ Content-addressable object storage (Chunk, Map, Checkpoint)
@@ -113,6 +114,6 @@ Kitsu is in **alpha** (`0.0.1-alpha`). The following features are functional:
 - ✅ Git bridge for GitHub/GitLab push
 - ✅ Multi-persona identity management
 - ✅ Repository info, stats, verification
-- ⚠️ `state` command (WIP)
+- ✅ Working state comparison (`state`)
 - ⚠️ Git pull support (WIP)
 - ⚠️ Merge/conflict resolution (not yet implemented)
