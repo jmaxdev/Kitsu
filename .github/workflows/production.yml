@@ -25,7 +25,7 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary_name: kitsu.exe
-          - os: macos-latest
+          - os: macos-13
             target: x86_64-apple-darwin
             binary_name: kitsu-intel
           - os: macos-latest
@@ -58,7 +58,9 @@ jobs:
     - name: Rename binary (Unix)
       if: runner.os != 'Windows'
       run: |
-        mv target/${{ matrix.target }}/release/kitsu target/${{ matrix.target }}/release/${{ matrix.binary_name }}
+        if [ "kitsu" != "${{ matrix.binary_name }}" ]; then
+          mv target/${{ matrix.target }}/release/kitsu target/${{ matrix.target }}/release/${{ matrix.binary_name }}
+        fi
 
     - name: Archive Artifacts (Unix)
       if: runner.os != 'Windows'
