@@ -90,4 +90,4 @@ jobs:
         files: artifacts/kitsu-*
         generate_release_notes: true
         draft: false
-        prerelease: false
+        prerelease: true
