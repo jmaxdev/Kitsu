@@ -689,13 +689,22 @@ fn main() -> Result<()> {
 
                 let head_hash = get_head_hash(&current_dir, &config).unwrap_or(None);
                 if head_hash.is_none() {
-                    println!("{}", "Repository is empty. Auto-applying imported image...".yellow());
+                    println!(
+                        "{}",
+                        "Repository is empty. Auto-applying imported image...".yellow()
+                    );
                     if let Ok((ObjectType::Checkpoint, cp_data)) = storage.read_object(&hash) {
                         if let Ok(cp) = Checkpoint::deserialize(&cp_data) {
                             let exclude = Exclude::load(&current_dir);
-                            if apply_map_to_disk(&storage, &cp.map_hash, &current_dir, &exclude).is_ok() {
+                            if apply_map_to_disk(&storage, &cp.map_hash, &current_dir, &exclude)
+                                .is_ok()
+                            {
                                 let repo_dir = current_dir.join(&config.dir_name);
-                                fs::write(repo_dir.join(&config.current_file), format!("{}\n", hash)).ok();
+                                fs::write(
+                                    repo_dir.join(&config.current_file),
+                                    format!("{}\n", hash),
+                                )
+                                .ok();
                                 println!("Switched to {}", hash.green());
                             } else {
                                 println!("Failed to apply working tree.");
@@ -705,7 +714,11 @@ fn main() -> Result<()> {
                         }
                     }
                 } else {
-                    println!("To apply it to your working tree, run: {} {}", "kitsu switch".bold(), hash);
+                    println!(
+                        "To apply it to your working tree, run: {} {}",
+                        "kitsu switch".bold(),
+                        hash
+                    );
                 }
             }
         }
