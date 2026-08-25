@@ -206,6 +206,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
+name = "cli"
+version = "0.0.3-alpha"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "colored",
+ "core",
+ "dialoguer",
+ "flate2",
+ "git2",
+ "hex",
+ "rpassword",
+ "semver",
+ "ssh2",
+ "tar",
+]
+
+[[package]]
 name = "colorchoice"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -243,6 +262,33 @@ name = "const-oid"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6ef517f0926dd24a1582492c791b6a4818a4d94e789a334894aa15b0d12f55c"
+
+[[package]]
+name = "core"
+version = "0.0.3-alpha"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "colored",
+ "dirs",
+ "ed25519-dalek",
+ "flate2",
+ "git2",
+ "hex",
+ "ignore",
+ "rand",
+ "rand_core",
+ "semver",
+ "serde",
+ "sha2 0.11.0",
+ "similar",
+ "ssh2",
+ "tar",
+ "tempfile",
+ "thiserror",
+ "toml",
+ "walkdir",
+]
 
 [[package]]
 name = "core-foundation-sys"
@@ -808,35 +854,6 @@ dependencies = [
  "futures-util",
  "once_cell",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "kitsu"
-version = "0.0.1-alpha"
-dependencies = [
- "anyhow",
- "chrono",
- "clap",
- "colored",
- "dialoguer",
- "dirs",
- "ed25519-dalek",
- "flate2",
- "git2",
- "hex",
- "ignore",
- "rand",
- "rand_core",
- "rpassword",
- "semver",
- "serde",
- "sha2 0.11.0",
- "similar",
- "ssh2",
- "tar",
- "tempfile",
- "toml",
- "walkdir",
 ]
 
 [[package]]

@@ -1,14 +1,16 @@
-[package]
-name = "kitsu"
-version = "0.0.2-alpha"
+[workspace]
+members = ["src/core", "src/cli"]
+resolver = "2"
+
+[workspace.package]
+version = "0.0.3-alpha"
 edition = "2024"
-description = "A modern version control system writed in Rust"
+description = "A modern version control system written in Rust"
+license = "MIT"
 
-[package.metadata.kitsu]
-dir_name = ".kitsu"
-
-[dependencies]
+[workspace.dependencies]
 anyhow = "1.0.102"
+thiserror = "2"
 chrono = "0.4.44"
 clap = { version = "4.6.1", features = ["derive"] }
 colored = "3.1.1"
@@ -30,9 +32,5 @@ ssh2 = "0.9.5"
 tar = "0.4.45"
 toml = "1.1.2"
 walkdir = "2.5.0"
-
-[build-dependencies]
-toml = "1.1.2"
-
-[dev-dependencies]
 tempfile = "3.10.1"
+kitsu_core = { path = "src/core", package = "core" }

@@ -1,0 +1,25 @@
+[package]
+name = "cli"
+version.workspace = true
+edition.workspace = true
+description = "CLI interface for the Kitsu version control system"
+license.workspace = true
+
+[[bin]]
+name = "kitsu"
+path = "src/main.rs"
+
+[dependencies]
+kitsu_core = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true }
+colored = { workspace = true }
+dialoguer = { workspace = true }
+flate2 = { workspace = true }
+git2 = { workspace = true }
+hex = { workspace = true }
+rpassword = { workspace = true }
+semver = { workspace = true }
+ssh2 = { workspace = true }
+tar = { workspace = true }
