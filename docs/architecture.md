@@ -1,6 +1,6 @@
 # System Architecture
 
-Kitsu is structured as a Cargo workspace monorepo, separating core version control engine logic from command-line interface presentation and user interaction.
+Kitsu is structured as a Cargo workspace monorepo, separating core version control engine logic from command-line interface presentation, interactive assistants, and self-update routines.
 
 ---
 
@@ -21,7 +21,8 @@ Kitsu/
     │   │   ├── config.rs       # Constants and configuration layout
     │   │   ├── repository.rs   # Central orchestrator (Repository struct)
     │   │   ├── state.rs        # Working state computation engine
-    │   │   ├── exclude.rs      # Unified file exclusion engine
+    │   │   ├── exclude.rs      # Unified file exclusion engine (.gitignore + .exclude)
+    │   │   ├── update.rs       # Update checker & in-place binary self-updater
     │   │   ├── objects/        # Core object model (Chunk, Map, Checkpoint)
     │   │   │   ├── mod.rs
     │   │   │   ├── chunk.rs
@@ -39,22 +40,23 @@ Kitsu/
     │   │   ├── diff/           # Tree diffing and delta formatting
     │   │   │   ├── mod.rs
     │   │   │   └── engine.rs
-    │   │   ├── identity/       # Personas and cryptographic operations
+    │   │   ├── identity/       # Personas and cryptographic operations (Ed25519)
     │   │   │   ├── mod.rs
     │   │   │   ├── crypto.rs
     │   │   │   └── persona.rs
-    │   │   └── remote/         # Remote sync and protocol abstraction
+    │   │   └── remote/         # Remote synchronization protocols
     │   │       ├── mod.rs
-    │   │       ├── transport.rs
-    │   │       ├── git_bridge.rs
-    │   │       └── registry.rs
+    │   │       ├── git_bridge.rs   # GitHub/GitLab bridge with custom branch
+    │   │       ├── local_bridge.rs # Local filesystem transport
+    │   │       ├── transport.rs    # Sovereign SSH/SFTP transport
+    │   │       └── registry.rs     # Remote configuration manager
     │   └── tests/
     │       └── repo_integration.rs # End-to-end repository lifecycle integration tests
     │
     └── cli/                    # Crate: 'cli' (binary: 'kitsu')
         ├── Cargo.toml
         └── src/
-            ├── main.rs         # Command-line entrypoint and dispatcher
+            ├── main.rs         # Command-line entrypoint and update banner check
             ├── app.rs          # Clap CLI definition and schema
             └── commands/       # Decoupled command handlers (one module per subcommand)
                 ├── ignite.rs
@@ -76,7 +78,8 @@ Kitsu/
                 ├── persona.rs
                 ├── burn.rs
                 ├── state.rs
-                └── peek.rs
+                ├── peek.rs
+                └── update.rs
 ```
 
 ---
@@ -100,7 +103,7 @@ The system operates across three conceptual layers:
          v                    v                    v
 +-----------------+  +-----------------+  +------------------+
 |   Object Model  |  | Reference Engine|  | Networking Layer |
-| (Chunk/Map/CP)  |  |  (HEAD/Streams) |  |  (SSH / Git)     |
+| (Chunk/Map/CP)  |  |  (HEAD/Streams) |  |(Git/Local/SSH)   |
 +-----------------+  +-----------------+  +------------------+
          \                    |                    /
           +-------------------+-------------------+
@@ -125,15 +128,20 @@ The system operates across three conceptual layers:
 
 3. **Reference Layer (`refs/`)**:
    - Resolves and updates mutable pointers: HEAD, Streams (branches), and Seals (semantic version tags).
+   - Handles auto-increment version calculations including prereleases (`alpha`, `beta`, `rc`, `alpha.0`).
    - Resolves user-provided reference selectors (`~N`, `#N`, stream names, seal tags, or raw hashes).
 
-4. **Orchestrator Layer (`repository.rs`, `state.rs`, `diff.rs`)**:
-   - Encapsulates domain operations such as staging files, creating checkpoints, restoring snapshots to disk, and diffing directory trees.
-   - Decouples storage operations from terminal input/output.
+4. **Remote & Networking Layer (`remote/`)**:
+   - Provides three transport strategies: Git Bridge (`git2`) with customizable data branch, Local directory bridge (`LocalBridge`), and Sovereign SSH/SFTP (`ssh2`).
 
-5. **CLI Layer (`src/cli/`)**:
+5. **Self-Update Engine (`update.rs`)**:
+   - Periodically checks official GitHub Releases (`https://github.com/jmaxdev/Kitsu`) with local disk caching.
+   - Performs atomic in-place binary self-replacement via `self-replace`.
+
+6. **CLI Layer (`src/cli/`)**:
    - Parses command-line flags and parameters via Clap.
    - Handles interactive user prompts (via `dialoguer`) and terminal formatting (via `colored`).
+   - Displays non-intrusive update banners.
    - Delegates all business logic to `core`.
 
 ---

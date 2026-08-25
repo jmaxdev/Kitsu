@@ -58,9 +58,9 @@ impl IdentityStore {
     /// Loads the identity store, checking local then global paths.
     ///
     /// Resolution order:
-    /// 1. `{repo_root}/.kitsu/identity.toml` (local)
-    /// 2. `~/.kitsu_identity.toml` (global)
-    /// 3. Default store with a generated `"default"` persona.
+    /// - `{repo_root}/.kitsu/identity.toml` (local)
+    /// - `~/.kitsu_identity.toml` (global)
+    /// - Default store with a generated `"default"` persona.
     pub fn load(current_dir: &Path) -> Self {
         let local_path = current_dir.join(".kitsu/identity.toml");
         if local_path.exists()

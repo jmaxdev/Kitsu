@@ -3,29 +3,66 @@ use colored::*;
 use dialoguer::Confirm;
 use kitsu_core::Repository;
 use kitsu_core::objects::{Checkpoint, Map};
-use kitsu_core::remote::{GitBridge, SshTransport, default_remote_name, is_git_url};
+use kitsu_core::remote::{
+    GitBridge, LocalBridge, RemoteRegistry, SshTransport, default_remote_name, is_git_url,
+    is_local_path,
+};
 use kitsu_core::storage::ObjectType;
 use std::path::Path;
 
-pub fn execute(current_dir: &Path, remote: Option<String>, target: Option<String>) -> Result<()> {
+pub fn execute(
+    current_dir: &Path,
+    remote: Option<String>,
+    target: Option<String>,
+    branch: Option<String>,
+) -> Result<()> {
     let repo = Repository::open(current_dir)?;
     let repo_dir = repo.repo_dir();
     let r_name =
         remote.unwrap_or_else(|| default_remote_name(&repo_dir).unwrap_or("origin".into()));
-    let r_url = std::fs::read_to_string(repo_dir.join("remotes").join(&r_name))?
-        .trim()
-        .to_string();
+
+    let remote_entry = RemoteRegistry::get(&repo_dir, &r_name)?;
+    let r_url = remote_entry.url;
+    let data_branch = branch.or(remote_entry.branch);
     let t_name = target.unwrap_or_else(|| "latest".to_string());
 
     if is_git_url(&r_url) {
-        println!("Pulling from Git Registry: {}", r_url);
-        let result = GitBridge::pull(repo.storage(), &repo_dir, &r_url, &t_name)?;
+        let branch_name = data_branch.as_deref().unwrap_or("kitsu-data");
+        println!(
+            "Pulling from Git Registry: {} (branch: {})",
+            r_url.cyan(),
+            branch_name.yellow()
+        );
+        let result = GitBridge::pull(
+            repo.storage(),
+            &repo_dir,
+            &r_url,
+            &t_name,
+            Some(branch_name),
+        )?;
         if let Some(hash) = result {
-            println!("Pulled {} from Git Registry.", hash);
+            println!(
+                "{} Pulled {} from Git Registry.",
+                "✓".green().bold(),
+                hash.yellow()
+            );
         } else {
             println!("No matching seal found on remote.");
         }
+    } else if is_local_path(&r_url) {
+        println!("Pulling from Local Registry: {}", r_url.cyan());
+        let result = LocalBridge::pull(repo.storage(), &repo_dir, &r_url, &t_name)?;
+        if let Some(hash) = result {
+            println!(
+                "{} Pulled {} from local remote.",
+                "✓".green().bold(),
+                hash.yellow()
+            );
+        } else {
+            println!("No matching seal found in local remote.");
+        }
     } else {
+        println!("Pulling from Sovereign Registry: {}", r_url.cyan());
         let transport = SshTransport::new(r_url.clone());
         let sess = connect_with_fallback(&transport)?;
         let r_repo = "kitsu_repo";
@@ -53,7 +90,7 @@ pub fn execute(current_dir: &Path, remote: Option<String>, target: Option<String
             }
         }
         std::fs::write(repo_dir.join("seals").join(&t_name), format!("{}\n", hash))?;
-        println!("Pulled from SFTP.");
+        println!("{} Pulled from SFTP.", "✓".green().bold());
     }
     Ok(())
 }

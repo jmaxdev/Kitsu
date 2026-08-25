@@ -44,9 +44,9 @@ Kitsu projects can be hosted directly on GitHub, GitLab, or Gitea repositories u
 2. **Initialize and configure remote in Kitsu**:
    ```bash
    kitsu ignite
-   # Select "GitHub / GitLab" and enter username and repository name
+   # Select "GitHub repository" and enter username, repository name, and optional custom data branch
    # Or configure manually:
-   kitsu repository remote add origin https://github.com/username/my-project.git
+   kitsu repository remote add origin https://github.com/username/my-project.git -b kitsu-data
    ```
 
 3. **Make checkpoints and push**:
@@ -63,9 +63,10 @@ Kitsu projects can be hosted directly on GitHub, GitLab, or Gitea repositories u
 
 ---
 
-## 3. Data Isolation
+## 3. Data Isolation and Custom Branching
 
-Kitsu pushes all data to a dedicated `kitsu-data` branch on the Git remote:
+By default, Kitsu pushes all data to a dedicated `kitsu-data` branch on the Git remote, though the branch name can be customized to any identifier (e.g. `vcontrol-data`, `archive`, `kitsu-main`):
 - The default branch on GitHub remains clean and unpolluted.
 - Kitsu objects are committed as immutable binary artifacts inside `objects/` on the remote.
 - Standard Git users can view the repository commit history or clone the data branch without conflicts.
+- Local-only repositories can be initialized without any remote, keeping 100% of data offline on your local machine.

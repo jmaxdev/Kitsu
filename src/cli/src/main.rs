@@ -9,6 +9,8 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     let current_dir = std::env::current_dir()?;
 
+    let is_update = matches!(cli.command, Commands::Update { .. });
+
     match cli.command {
         Commands::Ignite => commands::ignite::execute(&current_dir),
         Commands::Copy { url, directory } => commands::copy::execute(&current_dir, &url, directory),
@@ -29,8 +31,16 @@ fn main() -> Result<()> {
             commands::export::execute(&current_dir, &target, &output)
         }
         Commands::Import { input } => commands::import::execute(&current_dir, &input),
-        Commands::Push { remote, target } => commands::push::execute(&current_dir, remote, target),
-        Commands::Pull { remote, target } => commands::pull::execute(&current_dir, remote, target),
+        Commands::Push {
+            remote,
+            target,
+            branch,
+        } => commands::push::execute(&current_dir, remote, target, branch),
+        Commands::Pull {
+            remote,
+            target,
+            branch,
+        } => commands::pull::execute(&current_dir, remote, target, branch),
         Commands::Contents { target } => commands::contents::execute(&current_dir, target),
         Commands::Hash { file } => commands::hash::execute(&file),
         Commands::Repository { action } => commands::repository::execute(&current_dir, action),
@@ -40,5 +50,22 @@ fn main() -> Result<()> {
         }
         Commands::State => commands::state::execute(&current_dir),
         Commands::Peek { hash } => commands::peek::execute(&current_dir, &hash),
+        Commands::Update { tag, check } => commands::update::execute(tag, check),
+    }?;
+
+    if !is_update
+        && let Some(release) = kitsu_core::update::check_for_update(env!("CARGO_PKG_VERSION"))
+    {
+        use colored::*;
+        eprintln!(
+            "\n{}\n  A new version of Kitsu is available: {} -> {}\n  Run '{}' to update your binary.\n{}\n",
+            "┌────────────────────────────────────────────────────────────┐".yellow(),
+            env!("CARGO_PKG_VERSION").bright_black(),
+            release.tag_name.green().bold(),
+            "kitsu update".bold().cyan(),
+            "└────────────────────────────────────────────────────────────┘".yellow()
+        );
     }
+
+    Ok(())
 }

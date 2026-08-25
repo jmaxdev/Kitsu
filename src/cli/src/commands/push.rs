@@ -2,17 +2,27 @@ use anyhow::Result;
 use colored::*;
 use dialoguer::Confirm;
 use kitsu_core::Repository;
-use kitsu_core::remote::{GitBridge, SshTransport, default_remote_name, is_git_url};
+use kitsu_core::remote::{
+    GitBridge, LocalBridge, RemoteRegistry, SshTransport, default_remote_name, is_git_url,
+    is_local_path,
+};
 use std::path::Path;
 
-pub fn execute(current_dir: &Path, remote: Option<String>, target: Option<String>) -> Result<()> {
+pub fn execute(
+    current_dir: &Path,
+    remote: Option<String>,
+    target: Option<String>,
+    branch: Option<String>,
+) -> Result<()> {
     let repo = Repository::open(current_dir)?;
     let repo_dir = repo.repo_dir();
     let r_name =
         remote.unwrap_or_else(|| default_remote_name(&repo_dir).unwrap_or("origin".into()));
-    let r_url = std::fs::read_to_string(repo_dir.join("remotes").join(&r_name))?
-        .trim()
-        .to_string();
+
+    let remote_entry = RemoteRegistry::get(&repo_dir, &r_name)?;
+    let r_url = remote_entry.url;
+    let data_branch = branch.or(remote_entry.branch);
+
     let t_name = target.unwrap_or_else(|| {
         repo.current_stream()
             .ok()
@@ -23,11 +33,31 @@ pub fn execute(current_dir: &Path, remote: Option<String>, target: Option<String
     let reachable = repo.collect_reachable(&hash)?;
 
     if is_git_url(&r_url) {
-        println!("Pushing to Git Registry: {}", r_url);
-        GitBridge::push(repo.storage(), &repo_dir, &r_url, &t_name, &reachable)?;
-        println!("Pushed to GitHub (kitsu-data branch).");
+        let branch_name = data_branch.as_deref().unwrap_or("kitsu-data");
+        println!(
+            "Pushing to Git Registry: {} (branch: {})",
+            r_url.cyan(),
+            branch_name.yellow()
+        );
+        GitBridge::push(
+            repo.storage(),
+            &repo_dir,
+            &r_url,
+            &t_name,
+            &reachable,
+            Some(branch_name),
+        )?;
+        println!(
+            "{} Pushed to Git remote ({})",
+            "✓".green().bold(),
+            branch_name
+        );
+    } else if is_local_path(&r_url) {
+        println!("Pushing to Local Registry: {}", r_url.cyan());
+        LocalBridge::push(repo.storage(), &repo_dir, &r_url, &t_name, &reachable)?;
+        println!("{} Pushed to local path: {}", "✓".green().bold(), r_url);
     } else {
-        println!("Pushing to Sovereign Registry: {}", r_url);
+        println!("Pushing to Sovereign Registry: {}", r_url.cyan());
         let transport = SshTransport::new(r_url.clone());
         let sess = connect_with_fallback(&transport)?;
         let r_repo = "kitsu_repo";
@@ -37,7 +67,7 @@ pub fn execute(current_dir: &Path, remote: Option<String>, target: Option<String
             transport.push_object(&sess, &h, &data, r_repo)?;
         }
         transport.push_seal(&sess, &t_name, &hash, r_repo)?;
-        println!("Pushed to SFTP.");
+        println!("{} Pushed to SFTP.", "✓".green().bold());
     }
     Ok(())
 }

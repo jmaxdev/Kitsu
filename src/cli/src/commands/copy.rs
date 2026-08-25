@@ -4,15 +4,18 @@ use dialoguer::Confirm;
 use kitsu_core::Repository;
 use kitsu_core::config::AppConfig;
 use kitsu_core::objects::{Checkpoint, Map};
-use kitsu_core::remote::{SshTransport, is_git_url};
+use kitsu_core::remote::{
+    GitBridge, LocalBridge, RemoteRegistry, SshTransport, is_git_url, is_local_path,
+};
 use kitsu_core::storage::{ObjectType, Storage};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 pub fn execute(_current_dir: &Path, url: &str, directory: Option<PathBuf>) -> Result<()> {
     let dir_name = directory.unwrap_or_else(|| {
-        let name = url.split('/').next_back().unwrap_or("repo");
-        PathBuf::from(name.trim_end_matches(".git"))
+        let name = url.replace('\\', "/");
+        let last = name.split('/').rfind(|s| !s.is_empty()).unwrap_or("repo");
+        PathBuf::from(last.trim_end_matches(".git"))
     });
     if dir_name.exists() {
         return Err(anyhow::anyhow!("Directory {:?} already exists", dir_name));
@@ -26,15 +29,27 @@ pub fn execute(_current_dir: &Path, url: &str, directory: Option<PathBuf>) -> Re
     fs::create_dir_all(r_dir.join("seals"))?;
     fs::create_dir_all(r_dir.join("remotes"))?;
     fs::write(r_dir.join(&config.current_file), "stream: main\n")?;
-    fs::write(r_dir.join("remotes").join("origin"), url)?;
-    fs::write(r_dir.join("default_remote"), "origin")?;
+    RemoteRegistry::add(&r_dir, "origin", url, None)?;
+    RemoteRegistry::set_default(&r_dir, "origin")?;
 
     println!("Copying from {}...", url);
     let new_storage = Storage::new(dir_name.clone(), config.clone());
 
     if is_git_url(url) {
         println!("Pulling from Git Registry...");
-        let result = kitsu_core::remote::GitBridge::pull(&new_storage, &r_dir, url, "main")?;
+        let result = GitBridge::pull(&new_storage, &r_dir, url, "main", None)?;
+        if let Some(hash) = result
+            && let Ok((ObjectType::Checkpoint, cp_data)) = new_storage.read_object(&hash)
+            && let Ok(cp) = Checkpoint::deserialize(&cp_data)
+        {
+            kitsu_core::repository::Repository::open(&dir_name)?
+                .apply_map_to_disk(&cp.map_hash, &dir_name)?;
+            fs::write(r_dir.join(&config.current_file), format!("{}\n", hash))?;
+        }
+    } else if is_local_path(url) {
+        println!("Copying from local repository...");
+        let result = LocalBridge::pull(&new_storage, &r_dir, url, "main")
+            .or_else(|_| LocalBridge::pull(&new_storage, &r_dir, url, "latest"))?;
         if let Some(hash) = result
             && let Ok((ObjectType::Checkpoint, cp_data)) = new_storage.read_object(&hash)
             && let Ok(cp) = Checkpoint::deserialize(&cp_data)
@@ -78,7 +93,7 @@ pub fn execute(_current_dir: &Path, url: &str, directory: Option<PathBuf>) -> Re
         new_repo.apply_map_to_disk(&cp.map_hash, &dir_name)?;
         fs::write(r_dir.join(&config.current_file), format!("{}\n", hash))?;
     }
-    println!("Done. Project copied to {:?}", dir_name);
+    println!("{} Project copied to {:?}", "✓".green().bold(), dir_name);
     Ok(())
 }
 

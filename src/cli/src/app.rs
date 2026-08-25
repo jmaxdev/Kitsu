@@ -57,11 +57,11 @@ pub enum Commands {
     },
     /// Create or list version seals (tags).
     Seal {
-        /// Explicit semver version string (e.g., "1.0.0").
+        /// Explicit semver version string (e.g., "1.0.0", "0.0.4-alpha", "0.0.4-rc.1").
         version: Option<String>,
-        /// Auto-bump the version component.
+        /// Auto-bump the version (major, minor, patch, alpha, beta, rc, alpha.0, etc.).
         #[arg(short = 'b', long)]
-        bump: Option<BumpType>,
+        bump: Option<String>,
         /// List all existing seals.
         #[arg(short = 'l', long)]
         list: bool,
@@ -89,6 +89,9 @@ pub enum Commands {
         remote: Option<String>,
         /// Target stream/seal to push.
         target: Option<String>,
+        /// Custom remote data branch (defaults to configured branch or "kitsu-data").
+        #[arg(short = 'b', long)]
+        branch: Option<String>,
     },
     /// Pull objects from a remote registry.
     Pull {
@@ -96,6 +99,9 @@ pub enum Commands {
         remote: Option<String>,
         /// Target reference to pull.
         target: Option<String>,
+        /// Custom remote data branch (defaults to configured branch or "kitsu-data").
+        #[arg(short = 'b', long)]
+        branch: Option<String>,
     },
     /// Show contents of a checkpoint's file tree.
     Contents {
@@ -134,17 +140,15 @@ pub enum Commands {
         /// Object hash.
         hash: String,
     },
-}
-
-/// Version bump types for the `seal --bump` flag.
-#[derive(clap::ValueEnum, Clone)]
-pub enum BumpType {
-    /// Increment the major version component.
-    Major,
-    /// Increment the minor version component.
-    Minor,
-    /// Increment the patch version component.
-    Patch,
+    /// Update Kitsu to the latest version.
+    Update {
+        /// Specific version or tag to install (e.g., "0.0.4-alpha").
+        #[arg(short = 't', long)]
+        tag: Option<String>,
+        /// Check for available updates without installing.
+        #[arg(short = 'c', long)]
+        check: bool,
+    },
 }
 
 /// Persona management subcommands.
@@ -232,15 +236,21 @@ pub enum RemoteAction {
     Add {
         /// Remote name.
         name: String,
-        /// Remote URL.
+        /// Remote URL or local filesystem path.
         url: String,
+        /// Custom remote data branch name (defaults to "kitsu-data" for Git remotes).
+        #[arg(short = 'b', long)]
+        branch: Option<String>,
     },
-    /// Edit an existing remote's URL.
+    /// Edit an existing remote's URL and branch.
     Edit {
         /// Remote name.
         name: String,
-        /// New URL.
+        /// New URL or local filesystem path.
         url: String,
+        /// Custom remote data branch name.
+        #[arg(short = 'b', long)]
+        branch: Option<String>,
     },
     /// Set the default remote.
     Default {

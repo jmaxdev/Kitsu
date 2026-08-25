@@ -40,3 +40,4 @@ This glossary maps Kitsu concepts, nomenclature, and commands to their Git and i
 | `kitsu burn` | `git prune` | Deletes loose objects directly from object storage. |
 | `kitsu repository` | `git remote / branch / fsck` | Administrative subcommands for remotes, streams, and integrity verification. |
 | `kitsu persona` | `git config user.*` | Identity management for commit authorship and cryptographic keys. |
+| `kitsu update` | `rustup update / brew upgrade` | Self-updates the Kitsu binary in-place from official GitHub releases. |

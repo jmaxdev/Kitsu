@@ -32,6 +32,7 @@ kitsu <COMMAND> [OPTIONS]
 - [`burn`](#kitsu-burn) — Delete objects from the store
 - [`repository`](#kitsu-repository) — Repository inspection and management
 - [`persona`](#kitsu-persona) — Manage identity personas
+- [`update`](#kitsu-update) — Check GitHub for updates and self-update the binary
 
 ---
 
@@ -45,18 +46,23 @@ kitsu ignite
 ```
 - Creates `.kitsu/` metadata directory and subdirectories (`objects/`, `streams/`, `seals/`, `remotes/`).
 - Initializes `CURRENT` pointing to `stream: main`.
-- Prompts with an interactive wizard to configure a remote registry (GitHub/GitLab or SSH).
+- Prompts with an interactive assistant to choose repository operation mode:
+  - **Local / Offline repository (no remote)**: 100% offline local version control.
+  - **GitHub / GitLab repository**: Prompts for username, repository name, and optional custom data branch (default: `kitsu-data`).
+  - **Custom Git remote**: Prompts for HTTPS/SSH URL and data branch name.
+  - **Local directory / Backup remote**: Prompts for target folder or external drive path.
+  - **Sovereign SSH / SFTP server**: Prompts for SSH host, user, and remote directory.
 
 ---
 
 ### `kitsu copy`
-Clones an existing repository from a remote URL.
+Clones an existing repository from a remote URL or local path.
 
 ```bash
-kitsu copy <URL> [DIRECTORY]
+kitsu copy <URL_OR_PATH> [DIRECTORY]
 ```
-- **`<URL>`**: SSH URL (`ssh://[user@]host[:port]/path`) or Git URL (`https://github.com/...`).
-- **`[DIRECTORY]`**: Destination directory (defaults to the repository name extracted from the URL).
+- **`<URL_OR_PATH>`**: Git URL (`https://github.com/...`), local directory path (`D:\backups\repo`), or SSH URL (`ssh://[user@]host[:port]/path`).
+- **`[DIRECTORY]`**: Destination directory (defaults to the repository name extracted from the target).
 
 ---
 
@@ -119,10 +125,13 @@ kitsu rollback [TARGET]
 Creates or lists semantic version seals (tags).
 
 ```bash
-kitsu seal [VERSION] [--bump / -b <major|minor|patch>] [--list / -l]
+kitsu seal [VERSION] [--bump / -b <major|minor|patch|alpha|beta|rc|custom>] [--list / -l]
 ```
-- **`[VERSION]`**: Explicit semver string (e.g., `1.0.0`).
-- **`-b, --bump <BUMP>`**: Auto-increments the specified component (`major`, `minor`, `patch`) relative to the highest existing seal.
+- **`[VERSION]`**: Explicit semver string (e.g., `1.0.0`, `0.0.4-alpha`, `0.0.4-rc.1`, `v1.0.0-alpha.0`).
+- **`-b, --bump <BUMP>`**: Auto-increments the version:
+  - Standard components: `major`, `minor`, `patch` (resets or finalizes prereleases).
+  - Prerelease identifiers: `alpha`, `beta`, `rc` (e.g., `0.1.0` -> `0.1.1-alpha.0` -> `0.1.1-alpha.1` -> `0.1.1-rc.0` -> `0.1.1`).
+  - Direct custom tags: `alpha.0`, `rc.1`, etc.
 - **`-l, --list`**: Lists all existing seals sorted by semver ascending.
 
 ---
@@ -157,22 +166,26 @@ kitsu import <INPUT_FILE>
 ---
 
 ### `kitsu push`
-Pushes reachable objects and reference pointers to a configured remote.
+Pushes reachable objects and reference pointers to a configured remote (Git, local folder, or sovereign SSH).
 
 ```bash
-kitsu push [REMOTE] [TARGET]
+kitsu push [REMOTE] [TARGET] [--branch / -b <BRANCH>]
 ```
 - **`[REMOTE]`**: Remote name (defaults to the configured default remote, or `origin`).
 - **`[TARGET]`**: Stream name or seal to push (defaults to active stream or `latest`).
+- **`-b, --branch <BRANCH>`**: Custom remote data branch name (defaults to configured remote branch or `kitsu-data`).
 
 ---
 
 ### `kitsu pull`
-Pulls objects and reference pointers from a configured remote.
+Pulls objects and reference pointers from a configured remote (Git, local folder, or sovereign SSH).
 
 ```bash
-kitsu pull [REMOTE] [TARGET]
+kitsu pull [REMOTE] [TARGET] [--branch / -b <BRANCH>]
 ```
+- **`[REMOTE]`**: Remote name (defaults to default remote, or `origin`).
+- **`[TARGET]`**: Stream or seal to pull (defaults to `latest` or `main`).
+- **`-b, --branch <BRANCH>`**: Custom remote data branch name (defaults to configured remote branch or `kitsu-data`).
 
 ---
 
@@ -231,10 +244,11 @@ Repository maintenance and administrative operations.
 kitsu repository info               # Display repository metadata
 kitsu repository stats              # Show object count and disk storage usage
 kitsu repository verify             # Validate SHA-256 integrity of all stored objects
-kitsu repository vacuum             # Clean unreachable objects
-kitsu repository remote add <N> <U> # Add a named remote
-kitsu repository remote list        # List configured remotes
-kitsu repository remote remove <N>  # Remove a remote
+kitsu repository remote add <N> <U> [-b <BRANCH>]  # Add a named remote with optional branch
+kitsu repository remote edit <N> <U> [-b <BRANCH>] # Edit a remote URL/branch
+kitsu repository remote default <N>                # Set the default remote
+kitsu repository remote list                       # List configured remotes with branches
+kitsu repository remote remove <N>                 # Remove a remote
 kitsu repository stream new <N>     # Create a new stream from HEAD
 kitsu repository stream list        # List all stream names
 kitsu repository stream rename <O> <N> # Rename a stream
@@ -255,3 +269,15 @@ kitsu persona edit <ID> [-n <NAME>] [-e <EMAIL>] [--global / -g]
 kitsu persona github <USERNAME> [ID] [--global / -g]
 kitsu persona keys                  # Regenerate Ed25519 signing keys
 ```
+
+---
+
+### `kitsu update`
+Checks for newer releases on GitHub and performs an in-place binary update.
+
+```bash
+kitsu update [--tag / -t <TAG>] [--check / -c]
+```
+- **`-c, --check`**: Checks GitHub for newer releases without modifying the current binary.
+- **`-t, --tag <TAG>`**: Installs a specific version or tag (e.g., `0.0.4-alpha`, `v0.0.4`).
+- Automatically detects the current platform architecture, downloads the release package from `https://github.com/jmaxdev/Kitsu/releases`, extracts the executable, and atomically replaces the running binary on disk.

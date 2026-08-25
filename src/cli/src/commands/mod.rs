@@ -18,3 +18,4 @@ pub mod state;
 pub mod switch;
 pub mod timeline;
 pub mod track;
+pub mod update;

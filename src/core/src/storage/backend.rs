@@ -153,6 +153,19 @@ impl Storage {
         Ok((obj_type, content))
     }
 
+    /// Reads and decompresses an object from the store, returning full header + payload.
+    ///
+    /// # Errors
+    /// Returns an error if the object file cannot be found or decompressed.
+    pub fn read_raw_object(&self, hash: &str) -> Result<Vec<u8>> {
+        let path = self.get_object_path(hash);
+        let compressed_data = fs::read(path)?;
+        let mut decoder = ZlibDecoder::new(&compressed_data[..]);
+        let mut full_data = Vec::new();
+        decoder.read_to_end(&mut full_data)?;
+        Ok(full_data)
+    }
+
     /// Writes pre-formatted raw data to the store under the given hash.
     ///
     /// Unlike [`hash_and_write`](Self::hash_and_write), this method does not compute

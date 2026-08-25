@@ -8,16 +8,16 @@ use std::path::Path;
 /// Git protocol bridge for pushing Kitsu objects to GitHub/GitLab.
 ///
 /// Stores Kitsu objects inside a bare git repository ("git_bridge"),
-/// commits them, and pushes to a `kitsu-data` branch on the remote.
+/// commits them, and pushes to a configurable remote branch (defaults to `kitsu-data`).
 /// This enables using any standard git hosting service as a Kitsu registry.
 pub struct GitBridge;
 
 impl GitBridge {
-    /// Pushes all reachable objects to a git remote.
+    /// Pushes all reachable objects to a git remote branch.
     ///
     /// Creates a local git bridge repository (if needed), copies all
     /// Kitsu objects into it, creates a git commit, and pushes to
-    /// the `kitsu-data` branch on the remote.
+    /// the specified data branch (defaults to `"kitsu-data"`).
     ///
     /// # Errors
     /// Returns an error if git operations, file I/O, or network push fails.
@@ -27,7 +27,9 @@ impl GitBridge {
         remote_url: &str,
         target_name: &str,
         reachable: &HashSet<String>,
+        data_branch: Option<&str>,
     ) -> Result<()> {
+        let branch = data_branch.unwrap_or("kitsu-data");
         let git_path = repo_dir.join("git_bridge");
         if !git_path.exists() {
             fs::create_dir_all(&git_path)?;
@@ -39,7 +41,7 @@ impl GitBridge {
         }
 
         for h in reachable {
-            let (_, data) = storage.read_object(h)?;
+            let data = storage.read_raw_object(h)?;
             let p = git_path.join("objects").join(&h[..2]);
             fs::create_dir_all(&p)?;
             fs::write(p.join(&h[2..]), data)?;
@@ -79,14 +81,15 @@ impl GitBridge {
         )?;
 
         let mut remote = repo.find_remote("origin")?;
-        remote.push(&["refs/heads/master:refs/heads/kitsu-data"], None)?;
+        let refspec = format!("refs/heads/master:refs/heads/{}", branch);
+        remote.push(&[&refspec], None)?;
 
         Ok(())
     }
 
-    /// Fetches objects from a git remote's kitsu-data branch.
+    /// Fetches objects from a git remote's data branch.
     ///
-    /// Clones or fetches the `kitsu-data` branch from the remote and
+    /// Clones or fetches the data branch (defaults to `"kitsu-data"`) from the remote and
     /// imports all objects and seals into the local Kitsu storage.
     ///
     /// # Errors
@@ -96,7 +99,9 @@ impl GitBridge {
         repo_dir: &Path,
         remote_url: &str,
         target_name: &str,
+        data_branch: Option<&str>,
     ) -> Result<Option<String>> {
+        let branch = data_branch.unwrap_or("kitsu-data");
         let git_path = repo_dir.join("git_bridge");
 
         if !git_path.exists() {
@@ -105,14 +110,14 @@ impl GitBridge {
             let mut fetch_opts = git2::FetchOptions::new();
             fetch_opts.download_tags(git2::AutotagOption::None);
             builder.fetch_options(fetch_opts);
-            builder.branch("kitsu-data");
+            builder.branch(branch);
             builder.clone(remote_url, &git_path)?;
         } else {
             let repo = git2::Repository::open(&git_path)?;
             let mut remote = repo.find_remote("origin")?;
-            remote.fetch(&["kitsu-data"], None, None)?;
+            remote.fetch(&[branch], None, None)?;
 
-            let fetch_head = repo.find_reference("refs/remotes/origin/kitsu-data")?;
+            let fetch_head = repo.find_reference(&format!("refs/remotes/origin/{}", branch))?;
             let commit = fetch_head.peel_to_commit()?;
             repo.reset(commit.as_object(), git2::ResetType::Hard, None)?;
         }

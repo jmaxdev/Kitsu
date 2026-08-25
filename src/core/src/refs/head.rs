@@ -39,11 +39,11 @@ pub fn get_head_hash(current_dir: &Path, config: &AppConfig) -> Result<Option<St
 /// Resolves a user-provided target string to a concrete checkpoint hash.
 ///
 /// Supports multiple resolution strategies, tried in order:
-/// 1. **Stream name**: if a file exists under `streams/{target}`.
-/// 2. **Seal name**: if a file exists under `seals/{target}`.
-/// 3. **Ancestor notation** (`~N`): walks N parents back from HEAD.
-/// 4. **Index notation** (`#N`): selects the Nth checkpoint from root (0-indexed).
-/// 5. **Raw hash**: returned as-is if none of the above match.
+/// - **Stream name**: if a file exists under `streams/{target}`.
+/// - **Seal name**: if a file exists under `seals/{target}`.
+/// - **Ancestor notation** (`~N`): walks N parents back from HEAD.
+/// - **Index notation** (`#N`): selects the Nth checkpoint from root (0-indexed).
+/// - **Raw hash**: returned as-is if none of the above match.
 ///
 /// # Errors
 /// Returns an error if the referenced stream/seal cannot be read,

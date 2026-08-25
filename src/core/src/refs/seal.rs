@@ -1,5 +1,5 @@
 use anyhow::Result;
-use semver::Version;
+use semver::{Prerelease, Version};
 use std::fs;
 use std::path::Path;
 
@@ -52,34 +52,70 @@ pub fn list_seals(current_dir: &Path, dir_name: &str) -> Result<Vec<SealEntry>> 
     Ok(seals)
 }
 
-/// Computes the next version by bumping the specified component.
+/// Computes the next version by bumping the specified component or prerelease tag.
 ///
-/// Finds the latest existing seal version and increments the requested
-/// component (major/minor/patch), resetting lower components to zero.
-/// If no seals exist, starts from `0.0.0`.
+/// Supports:
+/// - `"major"`: increments major component and resets minor, patch, and prerelease.
+/// - `"minor"`: increments minor component and resets patch and prerelease.
+/// - `"patch"`: if a prerelease is active, finalizes into a stable release; otherwise increments patch.
+/// - Prerelease identifiers (`"alpha"`, `"beta"`, `"rc"`, `"alpha.0"`, etc.):
+///   - If current version already matches the prerelease tag, increments the numeric index.
+///   - If starting a new prerelease cycle, bumps patch and initializes `<tag>.0`.
 ///
 /// # Errors
-/// Returns an error if the seals directory cannot be read.
+/// Returns an error if the seals directory cannot be read or if the prerelease tag is invalid.
 pub fn bump_version(bump: &str, current_dir: &Path, dir_name: &str) -> Result<Version> {
     let seals = list_seals(current_dir, dir_name)?;
     let mut latest = seals
         .last()
         .map(|s| s.version.clone())
         .unwrap_or_else(|| Version::new(0, 0, 0));
+
     match bump {
         "major" => {
             latest.major += 1;
             latest.minor = 0;
             latest.patch = 0;
+            latest.pre = Prerelease::EMPTY;
         }
         "minor" => {
             latest.minor += 1;
             latest.patch = 0;
+            latest.pre = Prerelease::EMPTY;
         }
         "patch" => {
-            latest.patch += 1;
+            if latest.pre.is_empty() {
+                latest.patch += 1;
+            } else {
+                latest.pre = Prerelease::EMPTY;
+            }
         }
-        _ => return Err(anyhow::anyhow!("Invalid bump type: {}", bump)),
+        raw_tag => {
+            let clean_tag = raw_tag.trim_start_matches('-');
+            if clean_tag.contains('.') {
+                if latest.pre.is_empty() {
+                    latest.patch += 1;
+                }
+                latest.pre = Prerelease::new(clean_tag)?;
+            } else {
+                let current_pre = latest.pre.as_str();
+                let prefix = format!("{}.", clean_tag);
+                if !current_pre.is_empty()
+                    && (current_pre == clean_tag || current_pre.starts_with(&prefix))
+                {
+                    let num = current_pre
+                        .strip_prefix(&prefix)
+                        .and_then(|n| n.parse::<u64>().ok())
+                        .unwrap_or(0);
+                    latest.pre = Prerelease::new(&format!("{}.{}", clean_tag, num + 1))?;
+                } else {
+                    if latest.pre.is_empty() {
+                        latest.patch += 1;
+                    }
+                    latest.pre = Prerelease::new(&format!("{}.0", clean_tag))?;
+                }
+            }
+        }
     }
     Ok(latest)
 }
@@ -109,5 +145,32 @@ mod tests {
 
         let bumped_major = bump_version("major", dir.path(), dir_name).unwrap();
         assert_eq!(bumped_major, Version::parse("1.0.0").unwrap());
+    }
+
+    #[test]
+    fn seal_prerelease_bump_cycle() {
+        let dir = tempdir().unwrap();
+        let dir_name = ".kitsu";
+        let v0 = Version::parse("0.1.0").unwrap();
+        create_seal(&v0, "hash0", dir.path(), dir_name).unwrap();
+
+        let v_alpha0 = bump_version("alpha", dir.path(), dir_name).unwrap();
+        assert_eq!(v_alpha0, Version::parse("0.1.1-alpha.0").unwrap());
+        create_seal(&v_alpha0, "hash_a0", dir.path(), dir_name).unwrap();
+
+        let v_alpha1 = bump_version("alpha", dir.path(), dir_name).unwrap();
+        assert_eq!(v_alpha1, Version::parse("0.1.1-alpha.1").unwrap());
+        create_seal(&v_alpha1, "hash_a1", dir.path(), dir_name).unwrap();
+
+        let v_rc0 = bump_version("rc", dir.path(), dir_name).unwrap();
+        assert_eq!(v_rc0, Version::parse("0.1.1-rc.0").unwrap());
+        create_seal(&v_rc0, "hash_rc0", dir.path(), dir_name).unwrap();
+
+        let v_rc1 = bump_version("rc", dir.path(), dir_name).unwrap();
+        assert_eq!(v_rc1, Version::parse("0.1.1-rc.1").unwrap());
+        create_seal(&v_rc1, "hash_rc1", dir.path(), dir_name).unwrap();
+
+        let v_final = bump_version("patch", dir.path(), dir_name).unwrap();
+        assert_eq!(v_final, Version::parse("0.1.1").unwrap());
     }
 }

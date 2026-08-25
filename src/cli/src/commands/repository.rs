@@ -87,13 +87,26 @@ pub fn execute(current_dir: &Path, action: RepoAction) -> Result<()> {
             println!("Vacuum finished.");
         }
         RepoAction::Remote { action } => match action {
-            RemoteAction::Add { name, url } => {
-                RemoteRegistry::add(&repo_dir, &name, &url)?;
-                println!("Remote '{}' added: {}", name, url);
+            RemoteAction::Add { name, url, branch } => {
+                RemoteRegistry::add(&repo_dir, &name, &url, branch.as_deref())?;
+                if let Some(b) = &branch {
+                    println!("Remote '{}' added: {} (branch: {})", name, url, b.yellow());
+                } else {
+                    println!("Remote '{}' added: {}", name, url);
+                }
             }
-            RemoteAction::Edit { name, url } => {
-                RemoteRegistry::edit(&repo_dir, &name, &url)?;
-                println!("Remote '{}' updated to: {}", name, url);
+            RemoteAction::Edit { name, url, branch } => {
+                RemoteRegistry::edit(&repo_dir, &name, &url, branch.as_deref())?;
+                if let Some(b) = &branch {
+                    println!(
+                        "Remote '{}' updated to: {} (branch: {})",
+                        name,
+                        url,
+                        b.yellow()
+                    );
+                } else {
+                    println!("Remote '{}' updated to: {}", name, url);
+                }
             }
             RemoteAction::Default { name } => {
                 RemoteRegistry::set_default(&repo_dir, &name)?;
@@ -102,7 +115,11 @@ pub fn execute(current_dir: &Path, action: RepoAction) -> Result<()> {
             RemoteAction::List => {
                 let entries = RemoteRegistry::list(&repo_dir)?;
                 for e in entries {
-                    println!("  {} -> {}", e.name.green(), e.url.yellow());
+                    if let Some(b) = &e.branch {
+                        println!("  {} -> {} [{}]", e.name.green(), e.url.yellow(), b.cyan());
+                    } else {
+                        println!("  {} -> {}", e.name.green(), e.url.yellow());
+                    }
                 }
             }
             RemoteAction::Remove { name } => {

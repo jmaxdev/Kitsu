@@ -4,12 +4,10 @@ use kitsu_core::Repository;
 use semver::Version;
 use std::path::Path;
 
-use crate::app::BumpType;
-
 pub fn execute(
     current_dir: &Path,
     version: Option<String>,
-    bump: Option<BumpType>,
+    bump: Option<String>,
     list: bool,
 ) -> Result<()> {
     let repo = Repository::open(current_dir)?;
@@ -28,16 +26,14 @@ pub fn execute(
         .ok_or_else(|| anyhow::anyhow!("No head"))?;
 
     let final_v = if let Some(b) = bump {
-        let bump_str = match b {
-            BumpType::Major => "major",
-            BumpType::Minor => "minor",
-            BumpType::Patch => "patch",
-        };
-        kitsu_core::refs::bump_version(bump_str, current_dir, dir_name)?
+        kitsu_core::refs::bump_version(&b, current_dir, dir_name)?
     } else if let Some(v) = version {
-        Version::parse(&v)?
+        let clean_v = v.trim_start_matches('v');
+        Version::parse(clean_v)?
     } else {
-        return Err(anyhow::anyhow!("No version specified"));
+        return Err(anyhow::anyhow!(
+            "No version specified (provide version or --bump)"
+        ));
     };
 
     kitsu_core::refs::create_seal(&final_v, &head, current_dir, dir_name)?;

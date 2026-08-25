@@ -21,9 +21,9 @@ impl SshTransport {
     /// Establishes an authenticated SSH session.
     ///
     /// Tries authentication methods in order:
-    /// 1. SSH agent
-    /// 2. Password (if provided)
-    /// 3. `~/.ssh/id_rsa` key file
+    /// - SSH agent
+    /// - Password (if provided)
+    /// - `~/.ssh/id_rsa` key file
     ///
     /// # Errors
     /// Returns an error if all authentication methods fail or the TCP

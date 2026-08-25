@@ -17,6 +17,7 @@ pub mod remote;
 pub mod repository;
 pub mod state;
 pub mod storage;
+pub mod update;
 
 pub use config::AppConfig;
 pub use error::KitsuError;
