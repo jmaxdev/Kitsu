@@ -100,10 +100,28 @@ Or using `wget`:
 wget -qO- https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.sh | sh
 ```
 
+**Install a specific version or prerelease:**
+```bash
+# Install specific version
+curl -fsSL https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.sh | sh -s -- -v 0.0.3-alpha
+
+# Install latest prerelease
+curl -fsSL https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.sh | sh -s -- --pre
+```
+
 #### Windows (PowerShell)
 Run the PowerShell installer in your terminal:
 ```powershell
 irm https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.ps1 | iex
+```
+
+**Install a specific version or prerelease:**
+```powershell
+# Install specific version
+& { irm https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.ps1 } -Version "0.0.3-alpha"
+
+# Install latest prerelease
+& { irm https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.ps1 } -Prerelease
 ```
 
 > [!NOTE]
@@ -150,28 +168,28 @@ cargo build --release
 ## Quick Start
 
 ```bash
-# 1. Initialize a new repository (choose offline or remote in assistant)
+# Initialize a new repository (choose offline or remote in assistant)
 kitsu ignite
 
-# 2. Stage files for tracking
+# Stage files for tracking
 kitsu track src/main.rs Cargo.toml
 
-# 3. Create a signed checkpoint
+# Create a signed checkpoint
 kitsu freeze -m "feat: initial system setup" --sign
 
-# 4. View history
+# View checkpoint timeline
 kitsu timeline
 
-# 5. Inspect working tree status
+# Inspect working tree status
 kitsu state
 
-# 6. Create a semantic version seal (supports major, minor, patch, alpha, beta, rc)
+# Create a semantic version seal (supports major, minor, patch, alpha, beta, rc)
 kitsu seal --bump patch
 
-# 7. Push to a configured remote (Git, local folder, or SSH)
+# Push to a configured remote (Git, local folder, or SSH)
 kitsu push
 
-# 8. Check for updates and self-update
+# Check for updates and self-update
 kitsu update --check
 ```
 

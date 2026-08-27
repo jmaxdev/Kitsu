@@ -3,11 +3,25 @@
 
 [CmdletBinding()]
 param (
+    [Alias("v")]
     [string]$Version = "latest",
+
+    [Alias("pre")]
+    [switch]$Prerelease,
+
+    [Alias("d")]
     [string]$InstallDir = $(if ($env:KITSU_INSTALL_DIR) { $env:KITSU_INSTALL_DIR } else { Join-Path $env:USERPROFILE ".kitsu\bin" })
 )
 
 $ErrorActionPreference = "Stop"
+
+# Check environment variable overrides
+if ($env:KITSU_VERSION -and $Version -eq "latest") {
+    $Version = $env:KITSU_VERSION
+}
+if ($env:KITSU_PRERELEASE -eq "true" -or $env:KITSU_PRE -eq "true") {
+    $Prerelease = $true
+}
 
 function Write-Info ($msg) {
     Write-Host "==> " -ForegroundColor Green -NoNewline
@@ -52,23 +66,59 @@ if (-not $Releases -or $Releases.Count -eq 0) {
     exit 1
 }
 
-# Determine target release
+# Determine target release based on Version or Prerelease flag
 $TargetRelease = $null
-if ($Version -eq "latest") {
+
+if ($Version -eq "pre" -or $Version -eq "prerelease" -or $Prerelease.IsPresent) {
+    Write-Info "Searching for the latest prerelease..."
     foreach ($r in $Releases) {
+        if ($r.draft) { continue }
+        $isPre = $r.prerelease -or ($r.tag_name -match "(alpha|beta|rc|dev|-)")
+        if ($isPre) {
+            $matchingAsset = $r.assets | Where-Object { $_.name -like "*$AssetPattern*" }
+            if ($matchingAsset) {
+                $TargetRelease = $r
+                break
+            }
+        }
+    }
+} elseif ($Version -ne "latest") {
+    $cleanVer = $Version.TrimStart("v")
+    Write-Info "Searching for version: $Version..."
+    foreach ($r in $Releases) {
+        $tag = $r.tag_name
+        if ($tag -eq $Version -or $tag -eq "v$Version" -or $tag.TrimStart("v") -eq $cleanVer) {
+            $matchingAsset = $r.assets | Where-Object { $_.name -like "*$AssetPattern*" }
+            if ($matchingAsset) {
+                $TargetRelease = $r
+                break
+            }
+        }
+    }
+} else {
+    # Prefer stable releases, fallback to any available release
+    foreach ($r in $Releases) {
+        if ($r.draft -or $r.prerelease) { continue }
         $matchingAsset = $r.assets | Where-Object { $_.name -like "*$AssetPattern*" }
         if ($matchingAsset) {
             $TargetRelease = $r
             break
         }
     }
-} else {
-    $tag = if ($Version.StartsWith("v")) { $Version } else { "v$Version" }
-    $TargetRelease = $Releases | Where-Object { $_.tag_name -eq $tag }
+    if (-not $TargetRelease) {
+        foreach ($r in $Releases) {
+            if ($r.draft) { continue }
+            $matchingAsset = $r.assets | Where-Object { $_.name -like "*$AssetPattern*" }
+            if ($matchingAsset) {
+                $TargetRelease = $r
+                break
+            }
+        }
+    }
 }
 
 if (-not $TargetRelease) {
-    Write-ErrorMsg "Could not find a release matching version: $Version"
+    Write-ErrorMsg "Could not find a matching release (Version: $Version, Prerelease: $($Prerelease.IsPresent)) with asset $AssetPattern."
     exit 1
 }
 
