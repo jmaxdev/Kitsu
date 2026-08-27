@@ -4,7 +4,7 @@
 [CmdletBinding()]
 param (
     [string]$Version = "latest",
-    [string]$InstallDir = "$HOME\.kitsu\bin"
+    [string]$InstallDir = $(if ($env:KITSU_INSTALL_DIR) { $env:KITSU_INSTALL_DIR } else { Join-Path $env:USERPROFILE ".kitsu\bin" })
 )
 
 $ErrorActionPreference = "Stop"

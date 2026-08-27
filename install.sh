@@ -1,29 +1,29 @@
-#!/usr/bin/env bash
-# Kitsu Installer for Linux and macOS
+#!/bin/sh
+# Kitsu Installer for Linux and macOS (POSIX sh compatible)
 # https://github.com/jmaxdev/Kitsu
 
-set -euo pipefail
+set -eu
 
 REPO="jmaxdev/Kitsu"
 INSTALL_DIR="${KITSU_INSTALL_DIR:-$HOME/.kitsu/bin}"
 REQUESTED_VERSION="${KITSU_VERSION:-latest}"
 
-bold="$(tput bold 2>/dev/null || echo '')"
-green="$(tput setaf 2 2>/dev/null || echo '')"
-yellow="$(tput setaf 3 2>/dev/null || echo '')"
-red="$(tput setaf 1 2>/dev/null || echo '')"
-reset="$(tput sgr0 2>/dev/null || echo '')"
+bold="$(tput bold 2>/dev/null || true)"
+green="$(tput setaf 2 2>/dev/null || true)"
+yellow="$(tput setaf 3 2>/dev/null || true)"
+red="$(tput setaf 1 2>/dev/null || true)"
+reset="$(tput sgr0 2>/dev/null || true)"
 
 info() {
-    echo -e "${bold}${green}==>${reset} ${bold}$*${reset}"
+    printf "%s%s==>%s %s%s%s\n" "${bold}" "${green}" "${reset}" "${bold}" "$*" "${reset}"
 }
 
 warn() {
-    echo -e "${bold}${yellow}warning:${reset} $*"
+    printf "%s%swarning:%s %s\n" "${bold}" "${yellow}" "${reset}" "$*"
 }
 
 error() {
-    echo -e "${bold}${red}error:${reset} $*" >&2
+    printf "%s%serror:%s %s\n" "${bold}" "${red}" "${reset}" "$*" >&2
     exit 1
 }
 
@@ -65,7 +65,7 @@ TMP_DIR="$(mktemp -d 2>/dev/null || mktemp -d -t 'kitsu-install')"
 cleanup() {
     rm -rf "$TMP_DIR"
 }
-trap cleanup EXIT
+trap cleanup EXIT INT TERM
 
 HTTP_CLIENT=""
 if command -v curl >/dev/null 2>&1; then
@@ -77,7 +77,7 @@ else
 fi
 
 fetch_url() {
-    local url="$1"
+    url="$1"
     if [ "$HTTP_CLIENT" = "curl" ]; then
         curl -sSL -H "User-Agent: kitsu-installer" "$url"
     else
@@ -86,8 +86,8 @@ fetch_url() {
 }
 
 download_file() {
-    local url="$1"
-    local dest="$2"
+    url="$1"
+    dest="$2"
     if [ "$HTTP_CLIENT" = "curl" ]; then
         curl -fSL --progress-bar -H "User-Agent: kitsu-installer" "$url" -o "$dest"
     else
@@ -106,14 +106,16 @@ fi
 
 # Extract asset download URL
 DOWNLOAD_URL=""
-RELEASE_TAG=""
 
 if [ "$REQUESTED_VERSION" = "latest" ]; then
     # Parse the first release containing our target asset
     DOWNLOAD_URL=$(grep -oE "https://github.com/${REPO}/releases/download/[^\"]*${ASSET_PATTERN}" "$RELEASES_JSON" | head -n 1 || true)
 else
     TAG_QUERY="$REQUESTED_VERSION"
-    [[ "$TAG_QUERY" != v* ]] && TAG_QUERY="v$TAG_QUERY"
+    case "$TAG_QUERY" in
+        v*) ;;
+        *) TAG_QUERY="v$TAG_QUERY" ;;
+    esac
     DOWNLOAD_URL=$(grep -oE "https://github.com/${REPO}/releases/download/${TAG_QUERY}/[^\"]*${ASSET_PATTERN}" "$RELEASES_JSON" | head -n 1 || true)
 fi
 
@@ -151,7 +153,7 @@ info "Installed Kitsu binary to ${bold}${INSTALL_DIR}/kitsu${reset}"
 
 # 7. Configure PATH if necessary
 update_shell_profile() {
-    local shell_rc="$1"
+    shell_rc="$1"
     if [ -f "$shell_rc" ]; then
         if ! grep -q "$INSTALL_DIR" "$shell_rc"; then
             echo "" >> "$shell_rc"
@@ -185,8 +187,7 @@ case "${SHELL:-}" in
 esac
 
 echo ""
-echo -e "${bold}${green}Kitsu ${RELEASE_TAG} was successfully installed!${reset}"
-echo ""
+printf "%s%sKitsu %s was successfully installed!%s\n\n" "${bold}" "${green}" "${RELEASE_TAG}" "${reset}"
 echo "To get started, restart your terminal or run:"
 echo "  export PATH=\"\$PATH:$INSTALL_DIR\""
 echo ""

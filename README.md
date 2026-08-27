@@ -90,14 +90,14 @@ Kitsu/
 
 ### Automated Install (Recommended)
 
-#### Linux & macOS
+#### Linux & macOS (POSIX sh / bash)
 Run the installation script in your terminal:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.sh | sh
 ```
 Or using `wget`:
 ```bash
-wget -qO- https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.sh | sh
 ```
 
 #### Windows (PowerShell)
@@ -105,6 +105,9 @@ Run the PowerShell installer in your terminal:
 ```powershell
 irm https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.ps1 | iex
 ```
+
+> [!NOTE]
+> The automated installer places the `kitsu` executable in `~/.kitsu/bin` (e.g., `C:\Users\<user>\.kitsu\bin\kitsu.exe` on Windows or `~/.kitsu/bin/kitsu` on Unix) and automatically configures your system `PATH`.
 
 ---
 
