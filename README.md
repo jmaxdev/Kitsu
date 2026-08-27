@@ -118,10 +118,10 @@ irm https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.ps1 | iex
 **Install a specific version or prerelease:**
 ```powershell
 # Install specific version
-& { irm https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.ps1 } -Version "0.0.3-alpha"
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.ps1))) -Version "0.0.3-alpha"
 
 # Install latest prerelease
-& { irm https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.ps1 } -Prerelease
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.ps1))) -Prerelease
 ```
 
 > [!NOTE]
