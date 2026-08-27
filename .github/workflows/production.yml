@@ -7,7 +7,6 @@ on:
  
   workflow_dispatch:
 
-    
 permissions:
   contents: write
 
@@ -106,11 +105,26 @@ jobs:
         sha256sum * > SHA256SUMS.txt
         ls -la
 
-    - name: Determine Prerelease Status
-      id: check_prerelease
+    - name: Extract Cargo Version and Release Info
+      id: release_info
       run: |
-        TAG="${{ github.ref_name }}"
-        if [[ "$TAG" == *"-"* ]] || [[ "$TAG" == *"alpha"* ]] || [[ "$TAG" == *"beta"* ]] || [[ "$TAG" == *"rc"* ]]; then
+        VERSION=$(sed -nE 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' Cargo.toml | head -n 1)
+        if [ -z "$VERSION" ]; then
+          echo "::error::Could not extract version from Cargo.toml"
+          exit 1
+        fi
+
+        if [[ "$VERSION" =~ ^v ]]; then
+          TAG="$VERSION"
+        else
+          TAG="v$VERSION"
+        fi
+
+        echo "tag_name=$TAG" >> $GITHUB_OUTPUT
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Detected version: $VERSION -> tag: $TAG"
+
+        if [[ "$VERSION" == *"-"* ]] || [[ "$VERSION" == *"alpha"* ]] || [[ "$VERSION" == *"beta"* ]] || [[ "$VERSION" == *"rc"* ]] || [[ "$VERSION" == *"dev"* ]]; then
           echo "is_prerelease=true" >> $GITHUB_OUTPUT
           echo "make_latest=false" >> $GITHUB_OUTPUT
         else
@@ -121,9 +135,10 @@ jobs:
     - name: Publish GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        name: Kitsu ${{ github.ref_name }}
+        tag_name: ${{ steps.release_info.outputs.tag_name }}
+        name: Kitsu ${{ steps.release_info.outputs.tag_name }}
         files: artifacts/*
         generate_release_notes: true
         draft: false
-        prerelease: ${{ steps.check_prerelease.outputs.is_prerelease == 'true' }}
-        make_latest: ${{ steps.check_prerelease.outputs.make_latest }}
+        prerelease: ${{ steps.release_info.outputs.is_prerelease == 'true' }}
+        make_latest: ${{ steps.release_info.outputs.make_latest }}

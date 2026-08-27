@@ -86,17 +86,49 @@ Kitsu/
 
 ---
 
-## Installation and Building
+## Installation
 
-### Prerequisites
+### Automated Install (Recommended)
 
+#### Linux & macOS
+Run the installation script in your terminal:
+```bash
+curl -fsSL https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.sh | bash
+```
+Or using `wget`:
+```bash
+wget -qO- https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.sh | bash
+```
+
+#### Windows (PowerShell)
+Run the PowerShell installer in your terminal:
+```powershell
+irm https://raw.githubusercontent.com/jmaxdev/Kitsu/dev/install.ps1 | iex
+```
+
+---
+
+### Pre-built Binaries (GitHub Releases)
+
+Download pre-compiled binaries directly from [GitHub Releases](https://github.com/jmaxdev/Kitsu/releases):
+
+| Platform | Target Architecture | Archive |
+|---|---|---|
+| **Linux** | `x86_64` (GNU/Linux) | `kitsu-x86_64-unknown-linux-gnu.tar.gz` |
+| **macOS** | `aarch64` (Apple Silicon) | `kitsu-aarch64-apple-darwin.tar.gz` |
+| **macOS** | `x86_64` (Intel) | `kitsu-x86_64-apple-darwin.tar.gz` |
+| **Windows** | `x86_64` (MSVC) | `kitsu-x86_64-pc-windows-msvc.zip` |
+
+---
+
+### Build from Source
+
+#### Prerequisites
 - **Rust**: Version 1.85+ (Edition 2024)
 - **C Compiler & Build Tools**:
   - Linux: `libssh2-1-dev`, `libssl-dev`, `pkg-config`
   - macOS: `libssh2`, `openssl`, `pkg-config` (via Homebrew)
   - Windows: Visual Studio C++ Build Tools
-
-### Build from Source
 
 ```bash
 # Clone the repository
