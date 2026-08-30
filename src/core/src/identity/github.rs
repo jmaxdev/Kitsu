@@ -158,6 +158,18 @@ impl GitHubCredentials {
     }
 }
 
+#[derive(Deserialize, Debug)]
+struct RawGitHubOAuthResponse {
+    access_token: Option<String>,
+    token_type: Option<String>,
+    refresh_token: Option<String>,
+    expires_in: Option<i64>,
+    refresh_token_expires_in: Option<i64>,
+    error: Option<String>,
+    error_description: Option<String>,
+    error_uri: Option<String>,
+}
+
 /// Exchanges an OAuth temporary authorization code for an access token.
 ///
 /// # Errors
@@ -168,7 +180,7 @@ pub fn exchange_oauth_code(
     client_secret: &str,
     redirect_uri: &str,
 ) -> Result<GitHubTokenResponse> {
-    let response: GitHubTokenResponse = ureq::post("https://github.com/login/oauth/access_token")
+    let raw: RawGitHubOAuthResponse = ureq::post("https://github.com/login/oauth/access_token")
         .set("Accept", "application/json")
         .set("User-Agent", "Kitsu-VCS")
         .send_json(serde_json::json!({
@@ -179,7 +191,31 @@ pub fn exchange_oauth_code(
         }))?
         .into_json()?;
 
-    Ok(response)
+    if let Some(err) = raw.error {
+        let desc = raw
+            .error_description
+            .unwrap_or_else(|| "No description provided by GitHub".into());
+        let uri = raw.error_uri.unwrap_or_default();
+        return Err(anyhow::anyhow!(
+            "GitHub OAuth error '{}': {} ({})",
+            err,
+            desc,
+            uri
+        ));
+    }
+
+    let access_token = raw
+        .access_token
+        .ok_or_else(|| anyhow::anyhow!("Missing access_token in GitHub response"))?;
+    let token_type = raw.token_type.unwrap_or_else(|| "bearer".into());
+
+    Ok(GitHubTokenResponse {
+        access_token,
+        token_type,
+        refresh_token: raw.refresh_token,
+        expires_in: raw.expires_in,
+        refresh_token_expires_in: raw.refresh_token_expires_in,
+    })
 }
 
 /// Refreshes an expired OAuth access token using a refresh token.
@@ -191,7 +227,7 @@ pub fn refresh_access_token(
     client_id: &str,
     client_secret: &str,
 ) -> Result<GitHubTokenResponse> {
-    let response: GitHubTokenResponse = ureq::post("https://github.com/login/oauth/access_token")
+    let raw: RawGitHubOAuthResponse = ureq::post("https://github.com/login/oauth/access_token")
         .set("Accept", "application/json")
         .set("User-Agent", "Kitsu-VCS")
         .send_json(serde_json::json!({
@@ -202,7 +238,31 @@ pub fn refresh_access_token(
         }))?
         .into_json()?;
 
-    Ok(response)
+    if let Some(err) = raw.error {
+        let desc = raw
+            .error_description
+            .unwrap_or_else(|| "No description provided by GitHub".into());
+        return Err(anyhow::anyhow!(
+            "GitHub OAuth refresh error '{}': {}",
+            err,
+            desc
+        ));
+    }
+
+    let access_token = raw
+        .access_token
+        .ok_or_else(|| anyhow::anyhow!("Missing access_token in GitHub refresh response"))?;
+    let token_type = raw.token_type.unwrap_or_else(|| "bearer".into());
+
+    Ok(GitHubTokenResponse {
+        access_token,
+        token_type,
+        refresh_token: raw
+            .refresh_token
+            .or_else(|| Some(refresh_token.to_string())),
+        expires_in: raw.expires_in,
+        refresh_token_expires_in: raw.refresh_token_expires_in,
+    })
 }
 
 /// Fetches user profile and resolves the canonical valid commit email address.

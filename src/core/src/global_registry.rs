@@ -63,6 +63,27 @@ struct RegistryFile {
 /// Global repository registry manager.
 pub struct GlobalRegistry;
 
+/// Normalizes and cleans a filesystem path, stripping Windows extended-length prefix (`\\?\` or `//?/`).
+pub fn clean_path_string(path: &Path) -> String {
+    let canonical = match path.canonicalize() {
+        Ok(p) => p,
+        Err(_) => path.to_path_buf(),
+    };
+    let s = canonical.to_string_lossy().to_string();
+    let stripped = if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
+        format!(r"\\{}", rest)
+    } else if let Some(rest) = s.strip_prefix(r"\\?\") {
+        rest.to_string()
+    } else if let Some(rest) = s.strip_prefix("//?/UNC/") {
+        format!("//{}", rest)
+    } else if let Some(rest) = s.strip_prefix("//?/") {
+        rest.to_string()
+    } else {
+        s
+    };
+    stripped.replace('\\', "/")
+}
+
 impl GlobalRegistry {
     /// Returns the global registry file path (`~/.kitsu/repositories.toml`).
     pub fn file_path() -> Result<PathBuf> {
@@ -83,12 +104,16 @@ impl GlobalRegistry {
     /// # Errors
     /// Returns an error if the directory doesn't exist or file writing fails.
     pub fn register(path: &Path) -> Result<()> {
-        let canonical = match path.canonicalize() {
-            Ok(p) => p,
-            Err(_) => path.to_path_buf(),
-        };
-        let path_str = canonical.to_string_lossy().replace('\\', "/");
-        let name = canonical
+        let path_str = clean_path_string(path);
+        let repo_root = PathBuf::from(&path_str);
+        let repo_dir = repo_root.join(".kitsu");
+
+        // Verify that this is actually an initialized Kitsu repository
+        if !repo_dir.join("CURRENT").exists() && !repo_dir.join("objects").exists() {
+            return Ok(());
+        }
+
+        let name = repo_root
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| "unnamed".to_string());
@@ -97,7 +122,6 @@ impl GlobalRegistry {
         let mut github_repo = None;
         let mut default_remote_url = None;
 
-        let repo_dir = canonical.join(".kitsu");
         if repo_dir.exists()
             && let Ok(remotes) = RemoteRegistry::list(&repo_dir)
         {
@@ -155,11 +179,7 @@ impl GlobalRegistry {
     /// # Errors
     /// Returns an error if file I/O fails.
     pub fn unregister(path: &Path) -> Result<bool> {
-        let canonical = match path.canonicalize() {
-            Ok(p) => p,
-            Err(_) => path.to_path_buf(),
-        };
-        let path_str = canonical.to_string_lossy().replace('\\', "/");
+        let path_str = clean_path_string(path);
         let registry_path = Self::file_path()?;
         if !registry_path.exists() {
             return Ok(false);
@@ -186,8 +206,28 @@ impl GlobalRegistry {
         if !registry_path.exists() {
             return Ok(Vec::new());
         }
-        let content = fs::read_to_string(registry_path)?;
-        let registry: RegistryFile = toml::from_str(&content).unwrap_or_default();
+        let content = fs::read_to_string(&registry_path)?;
+        let mut registry: RegistryFile = toml::from_str(&content).unwrap_or_default();
+        let initial_len = registry.repositories.len();
+
+        // Clean stored path strings and prune repositories that no longer exist on disk
+        for repo in &mut registry.repositories {
+            let p = PathBuf::from(&repo.path);
+            repo.path = clean_path_string(&p);
+        }
+
+        registry.repositories.retain(|r| {
+            let p = PathBuf::from(&r.path);
+            let repo_dir = p.join(".kitsu");
+            repo_dir.join("CURRENT").exists() || repo_dir.join("objects").exists()
+        });
+
+        if registry.repositories.len() != initial_len
+            && let Ok(new_content) = toml::to_string(&registry)
+        {
+            let _ = fs::write(&registry_path, new_content);
+        }
+
         Ok(registry.repositories)
     }
 
@@ -197,7 +237,21 @@ impl GlobalRegistry {
     /// Returns an error if the repository cannot be opened or read.
     pub fn get_details(meta: &RepositoryMeta) -> Result<RepositoryFullDetails> {
         let path = PathBuf::from(&meta.path);
-        let repo = Repository::open(&path)?;
+        let repo = match Repository::open(&path) {
+            Ok(r) => r,
+            Err(_) => {
+                return Ok(RepositoryFullDetails {
+                    meta: meta.clone(),
+                    active_persona: "unknown".into(),
+                    current_stream: None,
+                    head_hash: None,
+                    seals_count: 0,
+                    total_objects: 0,
+                    storage_bytes: 0,
+                    local_issues_count: 0,
+                });
+            }
+        };
         let repo_dir = repo.repo_dir();
         let config = AppConfig::load();
 

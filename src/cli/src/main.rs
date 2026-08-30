@@ -18,8 +18,8 @@ fn main() -> Result<()> {
         let _ = kitsu_core::server::ensure_server_started();
     }
 
-    // Auto-register current repository if inside a valid Kitsu directory
-    if current_dir.join(".kitsu").exists() {
+    // Auto-register current repository if inside a valid Kitsu repository
+    if current_dir.join(".kitsu/CURRENT").exists() || current_dir.join(".kitsu/objects").exists() {
         let _ = kitsu_core::global_registry::GlobalRegistry::register(&current_dir);
     }
 

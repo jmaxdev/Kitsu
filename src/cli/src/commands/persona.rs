@@ -198,10 +198,11 @@ fn handle_github_auth(
 
     #[cfg(windows)]
     {
-        let _ = std::process::Command::new("cmd")
-            .args(["/c", "start", &auth_url])
+        let _ = std::process::Command::new("rundll32")
+            .args(["url.dll,FileProtocolHandler", &auth_url])
             .spawn();
     }
+
     #[cfg(target_os = "macos")]
     {
         let _ = std::process::Command::new("open").arg(&auth_url).spawn();
