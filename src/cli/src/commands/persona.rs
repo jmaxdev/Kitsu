@@ -189,7 +189,7 @@ fn handle_github_auth(
     let _ = ensure_server_started();
 
     let auth_url = format!(
-        "https://github.com/login/oauth/authorize?client_id={}&redirect_uri=http://localhost:{}/api/v1/github/auth&scope=read:user,user:email,repo",
+        "https://github.com/login/oauth/authorize?client_id={}&redirect_uri=http://localhost:{}/api/v1/github/auth&scope=read:user,user:email,repo&prompt=consent",
         GITHUB_CLIENT_ID, DEFAULT_SERVER_PORT
     );
 

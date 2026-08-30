@@ -68,12 +68,13 @@ private_key = [201, 4, 19, ...]
 ## 4. GitHub OAuth Authentication & Verified Noreply Email
 
 Kitsu provides native GitHub integration via `kitsu persona github auth`:
-- **OAuth Callback Flow**: Initiates a browser authentication request redirecting to `http://localhost:5911/api/v1/github/auth`.
+- **OAuth Callback Flow**: Initiates a browser authentication request redirecting to `http://localhost:5911/api/v1/github/auth` with `prompt=consent` to guarantee a fresh authorization grant and avoid stale OAuth states.
 - **Token Management**: Persists access and refresh tokens in `~/.kitsu/github_credentials.toml`. Automatically refreshes expired tokens using `refresh_token`.
 - **Accurate Noreply Email**: Queries GitHub's `/user` and `/user/emails` endpoints to resolve:
   - Official GitHub Privacy Noreply Email: `{id}+{login}@users.noreply.github.com` (e.g. `251231531+jmaxdev@users.noreply.github.com`).
-  - Or the user's primary verified email address.
-- **Fallback Authentication**: Interactive prompt for GitHub Personal Access Tokens (PAT).
+  - Strict privacy enforcement: never exposes or stores personal unverified/public emails in commit identities.
+- **Fallback Authentication**: Interactive prompt for GitHub Personal Access Tokens (PAT) when pressing Enter in terminal.
+
 
 ---
 
