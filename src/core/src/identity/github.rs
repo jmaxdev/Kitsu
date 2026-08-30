@@ -11,13 +11,10 @@ use std::path::PathBuf;
 /// Public OAuth Client ID for Kitsu.
 pub const GITHUB_CLIENT_ID: &str = "Ov23li1HhEd83bO82al6";
 
-/// Default Client Secret fallback (can be overridden at build time via `CLIENT_SECRET`).
+/// Default Client Secret fallback (can be overridden at build time via `CLIENT_SECRET` env var).
 pub const GITHUB_CLIENT_SECRET: &str = match option_env!("CLIENT_SECRET") {
     Some(secret) => secret,
-    None => match option_env!("CLIENT_SECRET") {
-        Some(secret) => secret,
-        None => "",
-    },
+    None => "5e510fd41a1e506a99777df887c7e89a8d6c11ca",
 };
 
 /// Returns the effective client secret checking runtime environment variable `CLIENT_SECRET` first.
