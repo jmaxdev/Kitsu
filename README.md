@@ -268,7 +268,9 @@ Exhaustive technical documentation is available in the [`docs/`](docs/README.md)
 - [Remote Protocols & Git Bridge](docs/remote-and-networking.md)
 - [Identity & Ed25519 Cryptography](docs/identity-and-crypto.md)
 - [Git Compatibility & Interoperability](docs/git-compatibility.md)
+- [Persistent Local Server & REST API](docs/server-and-api.md)
 - [Terminology Glossary](docs/glossary.md)
+
 
 ---
 

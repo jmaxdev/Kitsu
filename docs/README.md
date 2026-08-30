@@ -17,7 +17,9 @@ This documentation suite covers system architecture, data models, storage mechan
 | [Remote & Networking](remote-and-networking.md) | Triple-mode networking: Git Bridge (customizable data branch), Local filesystem remotes, and Sovereign SSH/SFTP |
 | [Identity & Cryptography](identity-and-crypto.md) | Persona management and Ed25519 digital signature generation/verification |
 | [Git Compatibility](git-compatibility.md) | Interoperability guide for GitHub, GitLab, custom data branches, and dual `.gitignore` / `.exclude` resolution |
+| [Server & REST API](server-and-api.md) | Persistent background HTTP server daemon (port 5911), Bearer token security, and REST API |
 | [Glossary](glossary.md) | Complete terminology mapping between Kitsu and Git/VCS standards |
+
 
 ---
 
