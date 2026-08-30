@@ -235,8 +235,12 @@ dependencies = [
  "hex",
  "rpassword",
  "semver",
+ "serde",
+ "serde_json",
  "ssh2",
  "tar",
+ "tempfile",
+ "ureq",
 ]
 
 [[package]]

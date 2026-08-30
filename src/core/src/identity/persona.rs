@@ -108,6 +108,37 @@ impl IdentityStore {
             .find(|i| i.id == self.active_id)
             .unwrap_or(&self.identities[0])
     }
+
+    /// Removes an identity persona by identifier.
+    ///
+    /// If the removed persona was the currently active one, the active ID
+    /// automatically falls back to the first remaining identity or a default persona.
+    ///
+    /// # Errors
+    /// Returns an error if the operation fails.
+    pub fn remove(&mut self, id: &str) -> anyhow::Result<bool> {
+        let pos = self.identities.iter().position(|i| i.id == id);
+        if let Some(index) = pos {
+            self.identities.remove(index);
+            if self.identities.is_empty() {
+                let mut default_id = Identity {
+                    id: "default".into(),
+                    name: "Kitsu User".into(),
+                    email: "kitsu@example.com".into(),
+                    public_key: None,
+                    private_key: None,
+                };
+                default_id.generate_keys();
+                self.identities.push(default_id);
+                self.active_id = "default".into();
+            } else if self.active_id == id {
+                self.active_id = self.identities[0].id.clone();
+            }
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
 }
 
 impl Default for IdentityStore {
@@ -124,5 +155,32 @@ impl Default for IdentityStore {
             identities: vec![default_id],
             active_id: "default".into(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_identity_remove_and_fallback() {
+        let mut store = IdentityStore::default();
+        store.identities.push(Identity {
+            id: "work".into(),
+            name: "Dev".into(),
+            email: "dev@work.com".into(),
+            public_key: None,
+            private_key: None,
+        });
+        store.active_id = "work".into();
+
+        assert_eq!(store.get_active().id, "work");
+        let removed = store.remove("work").unwrap();
+        assert!(removed);
+        assert_eq!(store.active_id, "default");
+        assert_eq!(store.identities.len(), 1);
+
+        let not_found = store.remove("nonexistent").unwrap();
+        assert!(!not_found);
     }
 }

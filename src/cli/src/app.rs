@@ -125,6 +125,12 @@ pub enum Commands {
         #[command(subcommand)]
         action: Option<PersonaAction>,
     },
+    /// Manage the persistent background server.
+    Server {
+        /// Server subcommand.
+        #[command(subcommand)]
+        action: ServerAction,
+    },
     /// Delete objects from the store.
     Burn {
         /// Object hash to delete (defaults to HEAD).
@@ -151,8 +157,39 @@ pub enum Commands {
     },
 }
 
+/// Server management subcommands.
+#[derive(Subcommand, Debug, Clone)]
+pub enum ServerAction {
+    /// Start the local background server daemon.
+    Start {
+        /// Server port.
+        #[arg(short = 'p', long, default_value = "5911")]
+        port: u16,
+    },
+    /// Stop the local background server.
+    Off {
+        /// Server port.
+        #[arg(short = 'p', long, default_value = "5911")]
+        port: u16,
+    },
+    /// Check the status of the local server.
+    Status {
+        /// Server port.
+        #[arg(short = 'p', long, default_value = "5911")]
+        port: u16,
+    },
+    /// Show the local API Bearer token for accessing /api/v1/*.
+    Token,
+    /// Run the server directly in foreground (used internally by daemon).
+    Daemon {
+        /// Server port.
+        #[arg(short = 'p', long, default_value = "5911")]
+        port: u16,
+    },
+}
+
 /// Persona management subcommands.
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum PersonaAction {
     /// Add a new persona.
     Add {
@@ -190,22 +227,56 @@ pub enum PersonaAction {
         #[arg(short = 'g', long)]
         global: bool,
     },
-    /// Import persona from a GitHub username.
+    /// Remove an existing persona.
+    Remove {
+        /// Persona ID to remove.
+        id: String,
+        /// Remove from global store.
+        #[arg(short = 'g', long)]
+        global: bool,
+    },
+    /// Alias for remove.
+    Delete {
+        /// Persona ID to delete.
+        id: String,
+        /// Delete from global store.
+        #[arg(short = 'g', long)]
+        global: bool,
+    },
+    /// GitHub authentication and persona setup.
     Github {
-        /// GitHub username.
-        username: String,
-        /// Persona ID (defaults to the username).
+        /// Optional GitHub username to import directly without OAuth.
+        username: Option<String>,
+        /// Persona ID (defaults to GitHub login username).
+        #[arg(short = 'i', long)]
         id: Option<String>,
         /// Store globally.
         #[arg(short = 'g', long)]
         global: bool,
+        /// Subcommand for GitHub operations (e.g. `auth`).
+        #[command(subcommand)]
+        action: Option<GithubSubAction>,
     },
     /// Regenerate signing keys for the active persona.
     Keys,
 }
 
+/// GitHub persona subactions.
+#[derive(Subcommand, Debug, Clone)]
+pub enum GithubSubAction {
+    /// Authenticate Kitsu with GitHub via OAuth browser flow or Personal Access Token (PAT).
+    Auth {
+        /// Optional Personal Access Token (PAT) for direct non-interactive auth.
+        #[arg(short = 't', long)]
+        token: Option<String>,
+        /// Save identity globally.
+        #[arg(short = 'g', long, default_value = "true")]
+        global: bool,
+    },
+}
+
 /// Repository management subcommands.
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum RepoAction {
     /// Show repository metadata.
     Info,
@@ -227,10 +298,106 @@ pub enum RepoAction {
         #[command(subcommand)]
         action: StreamAction,
     },
+    /// Import an external repository.
+    Import {
+        /// Import source type.
+        #[command(subcommand)]
+        action: RepoImportAction,
+    },
+    /// Manage local repository issues or GitHub issues.
+    Issue {
+        /// Issue subcommand.
+        #[command(subcommand)]
+        action: Option<IssueAction>,
+        /// Direct issue ID to view details.
+        id: Option<u64>,
+    },
+    /// Manage GitHub Pull Requests.
+    Pr {
+        /// PR subcommand.
+        #[command(subcommand)]
+        action: Option<PrAction>,
+        /// Direct PR ID to view details.
+        id: Option<u64>,
+    },
+}
+
+/// Repository import sources.
+#[derive(Subcommand, Debug, Clone)]
+pub enum RepoImportAction {
+    /// Import an existing Git repository into Kitsu.
+    Git {
+        /// Optional path to Git repository (defaults to current directory).
+        path: Option<PathBuf>,
+    },
+}
+
+/// Issue management subcommands.
+#[derive(Subcommand, Debug, Clone)]
+pub enum IssueAction {
+    /// Open a new issue.
+    Open {
+        /// Issue title.
+        title: String,
+        /// Issue description body.
+        body: Option<String>,
+    },
+    /// Close an issue with an optional comment message.
+    Close {
+        /// Issue ID / number.
+        id: u64,
+        /// Optional closing comment message.
+        message: Option<String>,
+    },
+    /// Delete a local issue or close a remote GitHub issue.
+    Delete {
+        /// Issue ID / number.
+        id: u64,
+    },
+    /// Reopen a closed issue.
+    Reopen {
+        /// Issue ID / number.
+        id: u64,
+    },
+    /// List all issues.
+    List,
+    /// View details of a specific issue.
+    View {
+        /// Issue ID / number.
+        id: u64,
+    },
+}
+
+/// Pull Request management subcommands.
+#[derive(Subcommand, Debug, Clone)]
+pub enum PrAction {
+    /// Open a new Pull Request on GitHub.
+    Open {
+        /// Pull request title.
+        title: String,
+        /// Pull request description.
+        body: Option<String>,
+        /// Head branch.
+        head: String,
+        /// Base branch.
+        base: String,
+    },
+    /// Close a Pull Request on GitHub.
+    Close {
+        /// PR number.
+        id: u64,
+    },
+    /// List Pull Requests.
+    List,
+    /// View details of a specific Pull Request.
+    View {
+        /// PR number.
+        id: u64,
+    },
 }
 
 /// Remote registry management subcommands.
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum RemoteAction {
     /// Add a new remote.
     Add {
@@ -267,7 +434,7 @@ pub enum RemoteAction {
 }
 
 /// Stream (branch) management subcommands.
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum StreamAction {
     /// Create a new stream from HEAD.
     New {

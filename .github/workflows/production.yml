@@ -58,9 +58,12 @@ jobs:
         key: ${{ matrix.target }}
 
     - name: Build Release Binary
+      env:
+        CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
       run: cargo build --release --bin kitsu --target ${{ matrix.target }}
 
     - name: Rename binary (Unix)
+
       if: runner.os != 'Windows'
       run: |
         if [ "kitsu" != "${{ matrix.binary_name }}" ]; then

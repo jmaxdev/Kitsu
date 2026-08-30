@@ -23,6 +23,10 @@ Kitsu/
     │   │   ├── state.rs        # Working state computation engine
     │   │   ├── exclude.rs      # Unified file exclusion engine (.gitignore + .exclude)
     │   │   ├── update.rs       # Update checker & in-place binary self-updater
+    │   │   ├── git_import.rs   # Git repository importer (git2 -> Kitsu)
+    │   │   ├── global_registry.rs # System-wide repository registry (~/.kitsu/repositories.toml)
+    │   │   ├── issues.rs       # Local issue engine (.kitsu/issues/<id>.toml) & GitHub bridge
+    │   │   ├── server/         # Persistent HTTP daemon (port 5911) & protected REST API
     │   │   ├── objects/        # Core object model (Chunk, Map, Checkpoint)
     │   │   │   ├── mod.rs
     │   │   │   ├── chunk.rs
@@ -40,9 +44,10 @@ Kitsu/
     │   │   ├── diff/           # Tree diffing and delta formatting
     │   │   │   ├── mod.rs
     │   │   │   └── engine.rs
-    │   │   ├── identity/       # Personas and cryptographic operations (Ed25519)
+    │   │   ├── identity/       # Personas, GitHub OAuth, and Ed25519 cryptography
     │   │   │   ├── mod.rs
     │   │   │   ├── crypto.rs
+    │   │   │   ├── github.rs   # GitHub OAuth flow & noreply email extractor
     │   │   │   └── persona.rs
     │   │   └── remote/         # Remote synchronization protocols
     │   │       ├── mod.rs
@@ -51,12 +56,13 @@ Kitsu/
     │   │       ├── transport.rs    # Sovereign SSH/SFTP transport
     │   │       └── registry.rs     # Remote configuration manager
     │   └── tests/
-    │       └── repo_integration.rs # End-to-end repository lifecycle integration tests
+    │       ├── repo_integration.rs   # End-to-end repository lifecycle integration tests
+    │       └── server_integration.rs # Local HTTP server & Bearer auth integration tests
     │
     └── cli/                    # Crate: 'cli' (binary: 'kitsu')
         ├── Cargo.toml
         └── src/
-            ├── main.rs         # Command-line entrypoint and update banner check
+            ├── main.rs         # Command-line entrypoint and background daemon auto-launch
             ├── app.rs          # Clap CLI definition and schema
             └── commands/       # Decoupled command handlers (one module per subcommand)
                 ├── ignite.rs

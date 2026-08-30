@@ -10,17 +10,23 @@ pub mod config;
 pub mod diff;
 pub mod error;
 pub mod exclude;
+pub mod git_import;
+pub mod global_registry;
 pub mod identity;
+pub mod issues;
 pub mod objects;
 pub mod refs;
 pub mod remote;
 pub mod repository;
+pub mod server;
 pub mod state;
 pub mod storage;
 pub mod update;
 
 pub use config::AppConfig;
 pub use error::KitsuError;
+pub use git_import::import_git_repository;
+pub use global_registry::GlobalRegistry;
 pub use repository::Repository;
 
 #[doc(hidden)]

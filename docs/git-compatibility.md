@@ -70,3 +70,43 @@ By default, Kitsu pushes all data to a dedicated `kitsu-data` branch on the Git 
 - Kitsu objects are committed as immutable binary artifacts inside `objects/` on the remote.
 - Standard Git users can view the repository commit history or clone the data branch without conflicts.
 - Local-only repositories can be initialized without any remote, keeping 100% of data offline on your local machine.
+
+---
+
+## 4. Migrating Existing Git Repositories (`import git`)
+
+If you have an existing Git repository with commit history, Kitsu can convert it directly into native Kitsu objects:
+
+```bash
+# Inside an existing Git directory (or pass path as argument)
+kitsu repository import git
+```
+
+- **Tree Conversion**: Recursively converts Git trees to Kitsu Maps and Git blobs to SHA-256 Chunks.
+- **Checkpoint Creation**: Converts the Git HEAD commit into a Kitsu Checkpoint preserving commit message, author name, and author email.
+- **Stage Index Sync**: Initializes and populates `.kitsu/stage` so your working directory remains clean.
+- **Remote Mapping**: Preserves existing Git remotes under Kitsu's remote registry targeting the `kitsu-data` branch.
+
+### Auto-Detection in `kitsu copy`
+When running `kitsu copy <URL>`, if the target is a standard Git repository that has not been initialized with Kitsu yet (i.e. lacking a `kitsu-data` branch), Kitsu automatically clones the Git tree and runs `import git` seamlessly.
+
+---
+
+## 5. GitHub Issues & Pull Requests Bridge
+
+Kitsu integrates directly with GitHub's REST API for issue and PR management:
+
+```bash
+# List / view / manage issues
+kitsu repository issue
+kitsu repository issue 123
+kitsu repository issue open "New Feature" "Detailed description"
+kitsu repository issue close 123 "Resolved in v0.0.4"
+
+# List / view / open pull requests
+kitsu repository pr
+kitsu repository pr 45
+kitsu repository pr open "feat: add oauth" "PR description" "feat-branch" "main"
+kitsu repository pr close 45
+```
+

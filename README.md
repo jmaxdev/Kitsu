@@ -20,12 +20,16 @@ Kitsu maintains full interoperability with Git hosting platforms (such as GitHub
 
 - **Content-Addressable Storage**: SHA-256 hashing and zlib compression for immutable, deduplicated data storage.
 - **Cryptographic Checkpoint Signing**: Native Ed25519 signature generation and verification for every checkpoint.
+- **Persistent Local Background Server**: Built-in HTTP server (`127.0.0.1:5911`) protected by Bearer token auth, providing REST endpoints (`/api/v1/repositories`, `/api/v1/status`, issues, PRs).
+- **GitHub OAuth & Valid Noreply Email**: Native OAuth flow (`kitsu persona github auth`) extracting valid commit emails (`{id}+{login}@users.noreply.github.com`).
+- **Git & GitHub Repository Importer**: Seamlessly import existing Git repositories into Kitsu checkpoints and maps (`kitsu repository import git`).
+- **Issue & Pull Request Tracking**: Built-in local issue tracking (`.kitsu/issues/<id>.toml`) and remote GitHub issue/PR bridge.
 - **Monorepo Architecture**: Structured as a modular Cargo workspace comprising a core engine library (`core`) and a decoupled command-line interface (`cli`).
 - **Multi-Mode Networking**: Seamlessly push to and pull from Git remotes (with configurable data branch), local directory remotes (for offline backups and USB drives), and sovereign SSH/SFTP servers.
 - **100% Offline / Local Operation**: Initialize and run repositories entirely offline without any external network dependency.
 - **Self-Updating Engine**: Non-intrusive update notification checks and atomic in-place binary self-updating (`kitsu update`) via GitHub Releases.
 - **Flexible Exclusion Engine**: Native support for both `.gitignore` and `.exclude` rule definitions.
-- **Persona Identity Management**: Configurable local and global identity personas with automatic keypair generation.
+- **Persona Identity Management**: Configurable local and global identity personas with automatic keypair generation, edit, use, and removal.
 - **Portability**: Complete repository export and import capabilities using compressed tar archives.
 
 ---
@@ -46,6 +50,7 @@ Kitsu maintains full interoperability with Git hosting platforms (such as GitHub
 | **Timeline** | `git log` | Chronological checkpoint history |
 | **Rollback** | `git reset --hard` | Restore working tree and HEAD to a specified checkpoint |
 | **State** | `git status` | Working tree state inspection |
+| **Server** | *N/A (Daemon)* | Local persistent background HTTP server (port 5911) with `/api/v1/*` endpoints |
 | **Update** | `rustup update / brew upgrade` | Self-updates the Kitsu binary in-place from official GitHub releases |
 
 ---
@@ -69,20 +74,47 @@ Kitsu/
     │       ├── state.rs        # Working state computation engine
     │       ├── exclude.rs      # .gitignore and .exclude rule engine
     │       ├── update.rs       # Update checker and in-place self-updater
+    │       ├── git_import.rs   # Git repository importer (git2 -> Kitsu)
+    │       ├── global_registry.rs # Global repository registry (~/.kitsu/repositories.toml)
+    │       ├── issues.rs       # Local issue engine (.kitsu/issues/<id>.toml) & GitHub bridge
+    │       ├── server/         # Persistent HTTP daemon (port 5911) & protected REST API
     │       ├── objects/        # Chunk, Map, and Checkpoint primitives
     │       ├── storage/        # Storage backend and binary staging index
     │       ├── refs/           # HEAD, Stream, and Seal management
     │       ├── diff/           # Map diffing and textual delta engine
-    │       ├── identity/       # Personas and Ed25519 cryptography
+    │       ├── identity/       # Personas, GitHub OAuth, and Ed25519 cryptography
     │       └── remote/         # GitBridge, LocalBridge, SshTransport, and registry
     │
     └── cli/                    # Command-line binary (cli crate / kitsu binary)
         ├── Cargo.toml
         └── src/
-            ├── main.rs         # Command dispatcher and update notification banner
+            ├── main.rs         # Command dispatcher and daemon auto-launch
             ├── app.rs          # Command-line interface definitions (Clap)
             └── commands/       # Individual subcommand implementations
+                ├── ignite.rs
+                ├── copy.rs
+                ├── track.rs
+                ├── freeze.rs
+                ├── timeline.rs
+                ├── diff.rs
+                ├── rollback.rs
+                ├── seal.rs
+                ├── switch.rs
+                ├── export.rs
+                ├── import.rs
+                ├── push.rs
+                ├── pull.rs
+                ├── contents.rs
+                ├── hash.rs
+                ├── repository.rs
+                ├── persona.rs
+                ├── server.rs
+                ├── burn.rs
+                ├── state.rs
+                ├── peek.rs
+                └── update.rs
 ```
+
 
 ---
 
@@ -217,9 +249,11 @@ kitsu update --check
 | `state` | None | Displays staged, unstaged, and untracked file status |
 | `peek` | `<HASH>` | Displays raw uncompressed content of an object |
 | `burn` | `[HASH] [-a/--aggressive]` | Deletes an object from the object store |
-| `repository` | `info \| stats \| verify \| vacuum \| remote \| stream` | Repository maintenance and inspection subcommands |
-| `persona` | `add \| list \| use \| edit \| github \| keys` | Identity and cryptographic keypair management |
+| `repository` | `info \| stats \| verify \| vacuum \| remote \| stream \| import git \| issue \| pr` | Repository maintenance, inspection, Git import, local/GitHub issues, and PR management |
+| `persona` | `add \| list \| use \| edit \| remove \| github [auth] \| keys` | Identity and cryptographic keypair management with GitHub OAuth & valid noreply email |
+| `server` | `start \| off \| status \| token` | Manages the persistent local background HTTP server (port 5911, protected /api/v1/*) |
 | `update` | `[-t/--tag <TAG>] [-c/--check]` | Checks GitHub for updates and self-updates the binary in-place |
+
 
 ---
 

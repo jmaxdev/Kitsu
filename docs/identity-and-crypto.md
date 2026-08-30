@@ -47,15 +47,37 @@ private_key = [12, 88, 204, ...]
 
 [[identities]]
 id = "personal"
-name = "Jane Dev"
-email = "jane@users.noreply.github.com"
+name = "Example"
+email = "12345+example@users.noreply.github.com"
 public_key = [33, 91, 108, ...]
 private_key = [201, 4, 19, ...]
 ```
 
 ---
 
-## 3. Cryptographic Operations
+## 3. Persona Lifecycle & Deletion
+
+- **Adding Personas**: `kitsu persona add <id> <name> <email> [-g/--global]`
+- **Switching Personas**: `kitsu persona use <id> [-g/--global]`
+- **Editing Personas**: `kitsu persona edit <id> [-n <name>] [-e <email>] [-g/--global]`
+- **Removing Personas**: `kitsu persona remove <id> [-g/--global]` (or `delete`)
+  - **Automatic Fallback**: If the active persona (`active_id`) is removed, Kitsu automatically sets the next available persona as active, or regenerates a new `"default"` persona if no identities remain.
+
+---
+
+## 4. GitHub OAuth Authentication & Verified Noreply Email
+
+Kitsu provides native GitHub integration via `kitsu persona github auth`:
+- **OAuth Callback Flow**: Initiates a browser authentication request redirecting to `http://localhost:5911/api/v1/github/auth`.
+- **Token Management**: Persists access and refresh tokens in `~/.kitsu/github_credentials.toml`. Automatically refreshes expired tokens using `refresh_token`.
+- **Accurate Noreply Email**: Queries GitHub's `/user` and `/user/emails` endpoints to resolve:
+  - Official GitHub Privacy Noreply Email: `{id}+{login}@users.noreply.github.com` (e.g. `251231531+jmaxdev@users.noreply.github.com`).
+  - Or the user's primary verified email address.
+- **Fallback Authentication**: Interactive prompt for GitHub Personal Access Tokens (PAT).
+
+---
+
+## 5. Cryptographic Operations
 
 ### Keypair Generation
 - Uses the `ed25519-dalek` crate with entropy sourced from the operating system via `rand_core::OsRng`.
@@ -78,3 +100,4 @@ let is_valid = kitsu_core::identity::verify_signature(
 )?;
 ```
 - During `kitsu timeline`, signatures are validated and visually flagged as `VALID` or `NONE`.
+

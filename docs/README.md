@@ -32,5 +32,8 @@ This documentation suite covers system architecture, data models, storage mechan
 - **Default Stream**: `main`
 - **Default Remote Branch**: `kitsu-data` (configurable per remote or command)
 - **Transport Backends**: Git Bridge (`git2`), Local Filesystem (`LocalBridge`), Sovereign SSH/SFTP (`ssh2`)
+- **Background Daemon Server**: Persistent local HTTP server on port `5911` with Bearer token authentication
+- **GitHub Integration**: Native OAuth authentication with valid noreply email format (`{id}+{login}@users.noreply.github.com`), Issues, and PR management
 - **Self-Update**: Atomic in-place executable replacement via `self-replace` from official GitHub Releases
 - **Binary Encoding**: Big-endian fixed-width integer fields for staging index
+

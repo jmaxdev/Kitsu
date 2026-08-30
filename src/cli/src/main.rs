@@ -3,6 +3,7 @@ mod commands;
 
 use anyhow::Result;
 use app::{Cli, Commands};
+
 use clap::Parser;
 
 fn main() -> Result<()> {
@@ -10,6 +11,17 @@ fn main() -> Result<()> {
     let current_dir = std::env::current_dir()?;
 
     let is_update = matches!(cli.command, Commands::Update { .. });
+    let is_server_cmd = matches!(cli.command, Commands::Server { .. });
+
+    // Auto-start persistent local background server on first execution of general Kitsu commands
+    if !is_server_cmd {
+        let _ = kitsu_core::server::ensure_server_started();
+    }
+
+    // Auto-register current repository if inside a valid Kitsu directory
+    if current_dir.join(".kitsu").exists() {
+        let _ = kitsu_core::global_registry::GlobalRegistry::register(&current_dir);
+    }
 
     match cli.command {
         Commands::Ignite => commands::ignite::execute(&current_dir),
@@ -45,6 +57,7 @@ fn main() -> Result<()> {
         Commands::Hash { file } => commands::hash::execute(&file),
         Commands::Repository { action } => commands::repository::execute(&current_dir, action),
         Commands::Persona { action } => commands::persona::execute(&current_dir, action),
+        Commands::Server { action } => commands::server::execute(action),
         Commands::Burn { hash, aggressive } => {
             commands::burn::execute(&current_dir, hash, aggressive)
         }

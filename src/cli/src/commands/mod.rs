@@ -14,6 +14,7 @@ pub mod push;
 pub mod repository;
 pub mod rollback;
 pub mod seal;
+pub mod server;
 pub mod state;
 pub mod switch;
 pub mod timeline;

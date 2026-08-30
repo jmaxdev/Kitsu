@@ -21,5 +21,11 @@ git2 = { workspace = true }
 hex = { workspace = true }
 rpassword = { workspace = true }
 semver = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 ssh2 = { workspace = true }
 tar = { workspace = true }
+ureq = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

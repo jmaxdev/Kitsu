@@ -30,9 +30,11 @@ kitsu <COMMAND> [OPTIONS]
 - [`state`](#kitsu-state) — Show working tree status
 - [`peek`](#kitsu-peek) — Inspect raw object content by hash
 - [`burn`](#kitsu-burn) — Delete objects from the store
-- [`repository`](#kitsu-repository) — Repository inspection and management
-- [`persona`](#kitsu-persona) — Manage identity personas
+- [`repository`](#kitsu-repository) — Repository inspection, Git import, local/GitHub issues, and PR management
+- [`persona`](#kitsu-persona) — Manage identity personas, GitHub OAuth, and keypairs
+- [`server`](#kitsu-server) — Manage the persistent background server and REST API
 - [`update`](#kitsu-update) — Check GitHub for updates and self-update the binary
+
 
 ---
 
@@ -238,12 +240,13 @@ kitsu burn [HASH] [--aggressive / -a]
 ---
 
 ### `kitsu repository`
-Repository maintenance and administrative operations.
+Repository maintenance, Git migration, issues, and pull request management.
 
 ```bash
 kitsu repository info               # Display repository metadata
 kitsu repository stats              # Show object count and disk storage usage
 kitsu repository verify             # Validate SHA-256 integrity of all stored objects
+kitsu repository import git [PATH]  # Convert an existing Git repo to native Kitsu objects
 kitsu repository remote add <N> <U> [-b <BRANCH>]  # Add a named remote with optional branch
 kitsu repository remote edit <N> <U> [-b <BRANCH>] # Edit a remote URL/branch
 kitsu repository remote default <N>                # Set the default remote
@@ -253,22 +256,62 @@ kitsu repository stream new <N>     # Create a new stream from HEAD
 kitsu repository stream list        # List all stream names
 kitsu repository stream rename <O> <N> # Rename a stream
 kitsu repository stream delete <N>  # Delete a stream
+
+# Issue Management (Local in .kitsu/issues/<id>.toml & GitHub Bridge)
+kitsu repository issue              # List all issues (local or GitHub if remote configured)
+kitsu repository issue <ID>         # View full details of issue #ID
+kitsu repository issue open <TITLE> [BODY] # Create a new issue
+kitsu repository issue close <ID> [MESSAGE] # Close an issue with optional resolution comment
+kitsu repository issue reopen <ID>  # Reopen a closed issue
+kitsu repository issue delete <ID>  # Delete a local issue file
+
+# Pull Request Management (GitHub Bridge)
+kitsu repository pr                 # List open GitHub pull requests
+kitsu repository pr <ID>            # View full details of PR #ID
+kitsu repository pr open <TITLE> <BODY> <HEAD> <BASE> # Open a pull request on GitHub
+kitsu repository pr close <ID>      # Close a pull request on GitHub
 ```
 
 ---
 
 ### `kitsu persona`
-Identity persona management for checkpoint authorship and cryptographic signing.
+Identity persona management for checkpoint authorship, cryptographic signing, and GitHub OAuth integration.
 
 ```bash
 kitsu persona                       # Show active persona details
 kitsu persona list                  # List all configured personas
-kitsu persona add <ID> <NAME> <EMAIL> [--global / -g]
-kitsu persona use <ID> [--global / -g]
-kitsu persona edit <ID> [-n <NAME>] [-e <EMAIL>] [--global / -g]
-kitsu persona github <USERNAME> [ID] [--global / -g]
+kitsu persona add <ID> <NAME> <EMAIL> [--global / -g] # Add a new identity persona
+kitsu persona use <ID> [--global / -g]               # Switch the active persona
+kitsu persona edit <ID> [-n <NAME>] [-e <EMAIL>] [--global / -g] # Edit persona details
+kitsu persona remove <ID> [--global / -g]            # Remove a persona (with auto-fallback)
+kitsu persona delete <ID> [--global / -g]            # Alias for remove
+kitsu persona github auth [-t <TOKEN>]               # Authenticate with GitHub via OAuth/PAT
+kitsu persona github <USERNAME> [ID] [--global / -g] # Import GitHub public profile
 kitsu persona keys                  # Regenerate Ed25519 signing keys
 ```
+
+---
+
+### `kitsu server`
+Manages the persistent local background HTTP daemon running on port 5911 with protected REST endpoints.
+
+```bash
+kitsu server status                 # Check if background server daemon is active
+kitsu server start                  # Launch the background daemon process
+kitsu server off                    # Gracefully stop the background server daemon
+kitsu server token                  # Print current Bearer authentication token
+```
+
+- **Port**: `127.0.0.1:5911`
+- **Authentication**: Bearer token generated and stored in `~/.kitsu/server_token`.
+- **Protected REST API Endpoints**:
+  - `GET /api/v1/health`: Unauthenticated health probe.
+  - `GET /api/v1/status`: Server runtime status, process PID, and version.
+  - `GET /api/v1/repositories`: Inventory of all globally registered Kitsu repositories.
+  - `GET /api/v1/repositories/:id/issues`: Issue list for a specific repository.
+  - `GET /api/v1/repositories/:id/prs`: GitHub PR list for a specific repository.
+  - `GET /api/v1/github/auth`: GitHub OAuth callback landing page.
+  - `POST /api/v1/shutdown`: Graceful server shutdown.
 
 ---
 
@@ -281,3 +324,4 @@ kitsu update [--tag / -t <TAG>] [--check / -c]
 - **`-c, --check`**: Checks GitHub for newer releases without modifying the current binary.
 - **`-t, --tag <TAG>`**: Installs a specific version or tag (e.g., `0.0.4-alpha`, `v0.0.4`).
 - Automatically detects the current platform architecture, downloads the release package from `https://github.com/jmaxdev/Kitsu/releases`, extracts the executable, and atomically replaces the running binary on disk.
+
