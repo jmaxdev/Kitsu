@@ -268,7 +268,7 @@ pub fn refresh_access_token(
 /// Fetches user profile and resolves the canonical valid commit email address.
 ///
 /// GitHub noreply emails follow the format `{id}+{login}@users.noreply.github.com`.
-/// If the user has a verified primary private/public email, it will use that or the noreply email.
+/// It prioritizes official `@users.noreply.github.com` addresses to protect user privacy.
 ///
 /// # Errors
 /// Returns an error if network request fails or authentication is denied.
@@ -281,9 +281,9 @@ pub fn fetch_user_profile_and_email(token: &str) -> Result<(GitHubUserProfile, S
         .into_json()?;
 
     // Standard valid noreply email for GitHub users
-    let noreply_email = format!("{}+{}@users.noreply.github.com", profile.id, profile.login);
+    let noreply_format = format!("{}+{}@users.noreply.github.com", profile.id, profile.login);
 
-    // Try fetching /user/emails to check for primary verified email or explicit noreply
+    // Check /user/emails for official GitHub noreply address
     let email_res = ureq::get("https://api.github.com/user/emails")
         .set("Authorization", &format!("Bearer {}", token))
         .set("Accept", "application/vnd.github.v3+json")
@@ -293,13 +293,21 @@ pub fn fetch_user_profile_and_email(token: &str) -> Result<(GitHubUserProfile, S
     let chosen_email = if let Ok(resp) = email_res
         && let Ok(emails) = resp.into_json::<Vec<GitHubEmailRecord>>()
     {
-        let primary_verified = emails
+        if let Some(noreply) = emails
             .iter()
-            .find(|e| e.primary && e.verified)
-            .map(|e| e.email.clone());
-        primary_verified.unwrap_or(noreply_email)
+            .find(|e| e.email.contains("noreply.github.com") && e.verified)
+        {
+            noreply.email.clone()
+        } else if let Some(noreply_any) = emails
+            .iter()
+            .find(|e| e.email.contains("noreply.github.com"))
+        {
+            noreply_any.email.clone()
+        } else {
+            noreply_format
+        }
     } else {
-        profile.email.clone().unwrap_or(noreply_email)
+        noreply_format
     };
 
     Ok((profile, chosen_email))

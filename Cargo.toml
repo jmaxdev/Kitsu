@@ -3,7 +3,7 @@ members = ["src/core", "src/cli"]
 resolver = "2"
 
 [workspace.package]
-version = "0.0.5-alpha"
+version = "0.0.6-alpha"
 edition = "2024"
 description = "A modern version control system written in Rust"
 license = "UnsetSoft License 1.0"

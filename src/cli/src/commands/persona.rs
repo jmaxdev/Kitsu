@@ -215,16 +215,80 @@ fn handle_github_auth(
     }
 
     println!(
-        "Waiting for OAuth confirmation in browser (or press Enter to paste a Personal Access Token)..."
+        "Waiting for OAuth confirmation in browser (or press [Enter] to paste a Personal Access Token)..."
     );
 
-    // Poll for credentials saved by server for up to 15 seconds
-    let initial_creds = GitHubCredentials::load().ok();
-    for _ in 0..30 {
-        std::thread::sleep(Duration::from_millis(500));
-        if let Ok(current_creds) = GitHubCredentials::load()
-            && initial_creds.as_ref() != Some(&current_creds)
-        {
+    let manual_requested = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let manual_clone = std::sync::Arc::clone(&manual_requested);
+
+    std::thread::spawn(move || {
+        let mut input = String::new();
+        if std::io::stdin().read_line(&mut input).is_ok() {
+            manual_clone.store(true, std::sync::atomic::Ordering::SeqCst);
+        }
+    });
+
+    let creds_file = GitHubCredentials::file_path().ok();
+    let initial_mtime = creds_file
+        .as_ref()
+        .and_then(|p| std::fs::metadata(p).ok())
+        .and_then(|m| m.modified().ok());
+
+    loop {
+        std::thread::sleep(Duration::from_millis(300));
+
+        if manual_requested.load(std::sync::atomic::Ordering::SeqCst) {
+            let pat: String = Input::new()
+                .with_prompt("Enter GitHub Personal Access Token (or leave empty to cancel)")
+                .allow_empty(true)
+                .interact_text()?;
+
+            if !pat.trim().is_empty() {
+                let (profile, valid_email) = fetch_user_profile_and_email(pat.trim())?;
+                let creds = GitHubCredentials {
+                    access_token: pat.trim().to_string(),
+                    refresh_token: None,
+                    token_type: "bearer".into(),
+                    expires_at: None,
+                    username: profile.login.clone(),
+                    user_id: profile.id,
+                    name: profile
+                        .name
+                        .clone()
+                        .unwrap_or_else(|| profile.login.clone()),
+                    email: valid_email.clone(),
+                };
+                creds.save()?;
+                update_or_create_github_persona(
+                    store,
+                    current_dir,
+                    &profile.login,
+                    profile.name.as_deref(),
+                    &valid_email,
+                    global,
+                )?;
+                println!(
+                    "\n{} Authenticated with GitHub as {} <{}>",
+                    "✓".green().bold(),
+                    profile.login.green().bold(),
+                    valid_email.yellow()
+                );
+            }
+            return Ok(());
+        }
+
+        let current_mtime = creds_file
+            .as_ref()
+            .and_then(|p| std::fs::metadata(p).ok())
+            .and_then(|m| m.modified().ok());
+
+        let has_updated = match (initial_mtime, current_mtime) {
+            (None, Some(_)) => true,
+            (Some(init), Some(curr)) => curr > init,
+            _ => false,
+        };
+
+        if has_updated && let Ok(current_creds) = GitHubCredentials::load() {
             *store = IdentityStore::load(current_dir);
             println!(
                 "\n{} Authenticated with GitHub as {} <{}>",
@@ -235,47 +299,6 @@ fn handle_github_auth(
             return Ok(());
         }
     }
-
-    // Fallback: prompt for PAT
-    println!("\n{}", "No browser response detected yet.".yellow());
-    let pat: String = Input::new()
-        .with_prompt("Enter GitHub Personal Access Token (or leave empty to cancel)")
-        .allow_empty(true)
-        .interact_text()?;
-
-    if !pat.trim().is_empty() {
-        let (profile, valid_email) = fetch_user_profile_and_email(pat.trim())?;
-        let creds = GitHubCredentials {
-            access_token: pat.trim().to_string(),
-            refresh_token: None,
-            token_type: "bearer".into(),
-            expires_at: None,
-            username: profile.login.clone(),
-            user_id: profile.id,
-            name: profile
-                .name
-                .clone()
-                .unwrap_or_else(|| profile.login.clone()),
-            email: valid_email.clone(),
-        };
-        creds.save()?;
-        update_or_create_github_persona(
-            store,
-            current_dir,
-            &profile.login,
-            profile.name.as_deref(),
-            &valid_email,
-            global,
-        )?;
-        println!(
-            "{} Authenticated with GitHub as {} <{}>",
-            "✓".green().bold(),
-            profile.login.green().bold(),
-            valid_email.yellow()
-        );
-    }
-
-    Ok(())
 }
 
 fn handle_github_username_import(
